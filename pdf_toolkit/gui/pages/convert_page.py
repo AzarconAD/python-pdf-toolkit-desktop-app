@@ -7,7 +7,6 @@ from PySide6.QtCore import Qt, Signal
 from gui.widgets.drop_zone import DropZone
 from gui.styles.theme import ACCENT, TEXT_ON_ACCENT, SURFACE_ELEVATED, TEXT_SECONDARY, TEXT_PRIMARY, SURFACE, BORDER, SUCCESS, ERROR
 from gui.utils.icons import get_icon
-from core.utils import PDFToolkitError, ConversionError, InvalidFileError, LibreOfficeNotFoundError
 
 class ToolCard(QPushButton):
     """Compact tool card for the unified convert page."""
@@ -66,18 +65,15 @@ class UnifiedConvertPage(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(25)
         
-        # Title
         title = QLabel("Convert")
         title.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 18px; font-weight: 500;")
         layout.addWidget(title)
         
-        # Tool Cards Row
         cards_layout = QHBoxLayout()
         cards_layout.setSpacing(15)
         
         self.cards = {}
         for t_id, title_text, exts, func, mode in self.tool_configs:
-            # Map tool id to icon
             icon_name = "pdf"
             if "word" in title_text.lower() or "docx" in t_id: icon_name = "word"
             elif "excel" in title_text.lower() or "xlsx" in t_id: icon_name = "excel"
@@ -91,7 +87,6 @@ class UnifiedConvertPage(QWidget):
             
         cards_layout.addStretch()
         
-        # We wrap cards in a horizontal scroll area in case there are many
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
