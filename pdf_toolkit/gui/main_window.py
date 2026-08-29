@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         
     def _setup_pages(self):
         from gui.pages.convert_page import UnifiedConvertPage
+        from gui.pages.organize_page import OrganizePage
         
         tool_configs = [
             ("pdf_to_docx", "PDF to Word", ['.pdf'], pdf_to_docx, "independent"),
@@ -41,7 +42,12 @@ class MainWindow(QMainWindow):
         
         self.convert_page = UnifiedConvertPage(tool_configs)
         self.stacked_widget.addWidget(self.convert_page)
+        
+        self.organize_page = OrganizePage()
+        self.stacked_widget.addWidget(self.organize_page)
             
     def _on_sidebar_category(self, category: str):
         if category == "Convert":
             self.stacked_widget.setCurrentWidget(self.convert_page)
+        elif category == "Organize":
+            self.stacked_widget.setCurrentWidget(self.organize_page)

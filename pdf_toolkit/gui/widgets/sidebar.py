@@ -19,7 +19,7 @@ class Sidebar(QWidget):
         # Define categories: (Name, is_enabled, tooltip, icon_name)
         categories = [
             ("Convert", True, "Convert between PDF and other formats", "convert"),
-            ("Organize", False, "Coming soon", "organize"),
+            ("Organize", True, "Organize PDF pages", "organize"),
             ("Optimize", False, "Coming soon", "optimize"),
             ("Edit", False, "Coming soon", "edit"),
             ("Security", False, "Coming soon", "security"),

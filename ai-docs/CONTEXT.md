@@ -23,6 +23,7 @@ PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Flagship/build-first category: Convert tools (PDF<->Word/Excel/PPT/JPG).
 - Office<->PDF conversion: bundled portable LibreOffice (not user-installed), invoked headless via subprocess.
 - GUI lib: PySide6 (not PyQt6, license).
+- Organize tools page-selection UX: visual page-thumbnail grid (click to select, drag to reorder) — not text/range input. Applies to extract, delete, reorder, rotate (per-page), and split-by-ranges.
 
 ## Feature scope (core modules)
 - Organize: merge_pdfs, split_pdf, extract_pages, delete_pages, reorder_pages, rotate_pages
@@ -33,7 +34,7 @@ PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase: 1 and 2 done. Phase 3 (Organize tools) next — not yet started. Phase 2 not yet independently file-verified by planner (see project-plan.md note).
+Phase: 1, 2, 3 done. Phase 4 (Compress + Security) next — not yet started. Phase 2 not yet independently file-verified by planner.
 
 ## Open items / not yet decided
 - Exact LibreOffice bundling mechanism for PyInstaller (deferred to Phase 5).

@@ -3,7 +3,7 @@
 ## Phases
 1. Core skeleton + Convert module (core_agent) — STATUS: done (47 tests, 41 passed/6 skipped/0 failed after correction pass; convert_to.py=PDF→other, convert_from.py=other→PDF per spec)
 2. GUI shell: sidebar dashboard + Convert views (gui_agent) — STATUS: done (module swap + import corrections verified, routing manually confirmed)
-3. Organize tools: merge/split/extract/delete/reorder/rotate (core_agent -> gui_agent) — STATUS: pending
+3. Organize tools: merge/split/extract/delete/reorder/rotate (core_agent -> gui_agent) — STATUS: done
 4. Compress + Security: compress/protect/unlock/watermark/page_numbers (core_agent -> gui_agent) — STATUS: pending
 5. Polish + packaging: PyInstaller, bundle portable LibreOffice, icons, error states, styling — STATUS: pending
 
@@ -20,8 +20,12 @@ Original structure (separate HomePage + ConvertToolPage) went through 4 correcti
 Verification status: app confirmed boots cleanly (exit code 0, auto-quit timer test). Visual match to mockup pending user's own eyes-on check. Task 2g (hardcoded-hex-outside-theme.py audit) requested, not yet returned.
 Prior Phase 2 (original structure) history: went through 4 correction rounds — (1) initial report only covered main.py, missing tasks 1-4; (2) core/ files edited without authorization (fitz->pymupdf deprecation fix, legitimate but broke 2 test mocks); (3) convert_to.py/convert_from.py had PDF→other and other→PDF swapped relative to spec, initially defended with a citation that actually disproved the claim; (4) corrected — module contents, imports, and test suite all verified post-fix. Final: 47 tests, 41 passed/6 skipped/0 failed. Not yet independently verified by planner via direct file upload.
 
-## Phase 3 detail (next)
+## Phase 3 detail (complete)
 Scope: Organize tools (merge/split/extract/delete/reorder/rotate) — core functions + GUI wiring.
+GUI wiring complete — sidebar Organize enabled, OrganizePage with 6 tool cards (Merge/Split/Extract/Delete/Reorder/Rotate), all wired to core.organize functions. Split tool includes live range preview (page grouping shown before commit, added after initial gap identified in review). Verified via full pytest suite (78 total, 72 passed, 6 skipped, 0 failed — unchanged from core-only count, as expected for GUI-layer work) plus a synthetic headless UI script exercising all 6 tools end-to-end.
+
+## Phase 4 detail (next)
+Scope: Compress + Security — compress_pdf, protect_pdf, unlock_pdf, add_watermark, add_page_numbers. Core functions + GUI wiring.
 
 ## Status legend
 pending -> spec_written -> in_progress -> built -> reviewed -> done
