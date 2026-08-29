@@ -1,4 +1,4 @@
-import pymupdf as fitz
+import pymupdf
 from PySide6.QtGui import QImage, QPixmap
 
 def get_page_count(pdf_path: str) -> int:
@@ -11,7 +11,7 @@ def get_page_count(pdf_path: str) -> int:
     Returns:
         int: Total page count.
     """
-    with fitz.open(pdf_path) as doc:
+    with pymupdf.open(pdf_path) as doc:
         return doc.page_count
 
 
@@ -27,20 +27,18 @@ def render_page_thumbnail(pdf_path: str, page_number: int, max_size: int = 150) 
     Returns:
         QPixmap: The rendered thumbnail.
     """
-    with fitz.open(pdf_path) as doc:
+    with pymupdf.open(pdf_path) as doc:
         page = doc.load_page(page_number - 1)
         
         rect = page.rect
         longest_side = max(rect.width, rect.height)
         zoom = max_size / longest_side if longest_side > 0 else 1.0
         
-        mat = fitz.Matrix(zoom, zoom)
+        mat = pymupdf.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=mat, alpha=False)
         
-        # Determine QImage format
         fmt = QImage.Format_RGBA8888 if pix.alpha else QImage.Format_RGB888
             
-        # Create QImage from raw bytes
         img = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
         
         # Deep copy the QImage to prevent segfaults when 'pix' is garbage collected

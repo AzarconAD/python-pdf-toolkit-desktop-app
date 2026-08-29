@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (
-    QWidget, QScrollArea, QGridLayout, QVBoxLayout, QLabel, QFrame, QApplication
+    QWidget, QGridLayout, QVBoxLayout, QLabel, QFrame, QApplication
 )
 from PySide6.QtCore import Qt, Signal, QMimeData
 from PySide6.QtGui import QMouseEvent, QDrag
 
-from pdf_toolkit.gui.utils.thumbnails import render_page_thumbnail, get_page_count
-from pdf_toolkit.gui.styles import theme
+from gui.utils.thumbnails import render_page_thumbnail, get_page_count
+from gui.styles import theme
 
 
 class ThumbnailTile(QFrame):
@@ -17,7 +17,7 @@ class ThumbnailTile(QFrame):
         self.is_selected = False
         self._drag_start_pos = None
         
-        self.setFixedSize(170, 200)
+        self.setFixedSize(120, 160)
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -30,7 +30,7 @@ class ThumbnailTile(QFrame):
         
         text_label = QLabel(f"Page {page_num}")
         text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        text_label.setStyleSheet(f"color: {theme.TEXT_SECONDARY}; border: none; background: transparent;")
+        text_label.setStyleSheet(f"color: {theme.TEXT_SECONDARY}; border: none; background: transparent; font-size: 11px;")
         
         layout.addWidget(img_label)
         layout.addWidget(text_label)
@@ -143,13 +143,9 @@ class PageThumbnailGrid(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet(f"QScrollArea {{ border: none; background-color: {theme.BG_PAGE}; }}")
         
         self.grid_container = GridContainer()
-        self.grid_container.setStyleSheet(f"background-color: {theme.BG_PAGE};")
+        self.grid_container.setStyleSheet(f"background-color: transparent;")
         self.grid_container.dropped.connect(self._on_tile_dropped)
         
         self.grid_layout = QGridLayout(self.grid_container)
@@ -157,8 +153,7 @@ class PageThumbnailGrid(QWidget):
         self.grid_layout.setContentsMargins(16, 16, 16, 16)
         self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        self.scroll_area.setWidget(self.grid_container)
-        main_layout.addWidget(self.scroll_area)
+        main_layout.addWidget(self.grid_container)
         
     def _load_thumbnails(self):
         try:
@@ -168,7 +163,7 @@ class PageThumbnailGrid(QWidget):
             
         for i in range(total_pages):
             page_num = i + 1
-            pixmap = render_page_thumbnail(self.pdf_path, page_num)
+            pixmap = render_page_thumbnail(self.pdf_path, page_num, max_size=100)
             
             tile = ThumbnailTile(page_num, pixmap)
             tile.clicked.connect(self._on_tile_clicked)
@@ -184,8 +179,8 @@ class PageThumbnailGrid(QWidget):
         if not self._tiles:
             return
             
-        available_width = self.scroll_area.viewport().width() - 32
-        tile_width = 170 + 16
+        available_width = self.width() - 32
+        tile_width = 120 + 16
         columns = max(1, available_width // tile_width)
         
         if columns == self._current_cols and not force:

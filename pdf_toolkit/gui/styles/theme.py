@@ -1,4 +1,3 @@
-# Color Palette (Dark Mode MVP)
 BG_PAGE = "#121317"
 SURFACE = "#1B1D22"
 SURFACE_ELEVATED = "#24262C"
