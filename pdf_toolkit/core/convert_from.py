@@ -1,126 +1,111 @@
 import os
-import fitz  # PyMuPDF
+import pymupdf  # PyMuPDF
 from pathlib import Path
-from pdf2docx import Converter
-from .utils import validate_pdf, ensure_output_dir, ConversionError
+from .utils import validate_file_exists, validate_extension, ensure_output_dir, ConversionError
 from .office_bridge import run_soffice_conversion
 
-def pdf_to_docx(input_path: str, output_dir: str) -> Path:
+def docx_to_pdf(input_path: str, output_dir: str) -> Path:
     """
-    Convert PDF to .docx using pdf2docx library.
+    Convert .docx to PDF via LibreOffice.
     
     Args:
-        input_path (str): Path to input PDF file.
-        output_dir (str): Directory to save the resulting .docx.
+        input_path (str): Path to input .docx file.
+        output_dir (str): Path to save the resulting PDF.
         
     Returns:
-        Path: Output .docx path.
+        Path: Output PDF path.
         
     Raises:
         FileNotFoundError: If the input file does not exist.
-        InvalidFileError: If the input file is not a valid PDF.
+        ValueError: If the input file does not have a .docx extension.
         ConversionError: If the conversion fails.
     """
-    validate_pdf(input_path)
+    validate_file_exists(input_path)
+    validate_extension(input_path, ['docx'])
     ensure_output_dir(os.path.join(output_dir, "dummy"))
     
-    in_p = Path(input_path)
-    out_p = Path(output_dir) / f"{in_p.stem}.docx"
+    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+
+def xlsx_to_pdf(input_path: str, output_dir: str) -> Path:
+    """
+    Convert .xlsx to PDF via LibreOffice.
+    
+    Args:
+        input_path (str): Path to input .xlsx file.
+        output_dir (str): Path to save the resulting PDF.
+        
+    Returns:
+        Path: Output PDF path.
+        
+    Raises:
+        FileNotFoundError: If the input file does not exist.
+        ValueError: If the input file does not have a .xlsx extension.
+        ConversionError: If the conversion fails.
+    """
+    validate_file_exists(input_path)
+    validate_extension(input_path, ['xlsx'])
+    ensure_output_dir(os.path.join(output_dir, "dummy"))
+    
+    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+
+def pptx_to_pdf(input_path: str, output_dir: str) -> Path:
+    """
+    Convert .pptx to PDF via LibreOffice.
+    
+    Args:
+        input_path (str): Path to input .pptx file.
+        output_dir (str): Path to save the resulting PDF.
+        
+    Returns:
+        Path: Output PDF path.
+        
+    Raises:
+        FileNotFoundError: If the input file does not exist.
+        ValueError: If the input file does not have a .xlsx extension.
+        ConversionError: If the conversion fails.
+    """
+    validate_file_exists(input_path)
+    validate_extension(input_path, ['pptx'])
+    ensure_output_dir(os.path.join(output_dir, "dummy"))
+    
+    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+
+def images_to_pdf(input_paths: list[str], output_path: str) -> Path:
+    """
+    Convert a list of image files to a single PDF using PyMuPDF.
+    
+    Args:
+        input_paths (list[str]): List of image file paths (jpg, jpeg, png).
+        output_path (str): Full path to save the resulting PDF.
+        
+    Returns:
+        Path: Output PDF path.
+        
+    Raises:
+        FileNotFoundError: If any input file does not exist.
+        ValueError: If any input file does not have an allowed extension.
+        ConversionError: If no images are provided or PyMuPDF fails.
+    """
+    if not input_paths:
+        raise ConversionError("No input images provided.")
+        
+    for p in input_paths:
+        validate_file_exists(p)
+        validate_extension(p, ['jpg', 'jpeg', 'png'])
+        
+    ensure_output_dir(output_path)
     
     try:
-        cv = Converter(input_path)
-        cv.convert(str(out_p), start=0, end=None)
-        cv.close()
-    except Exception as e:
-        raise ConversionError(f"Failed to convert PDF to DOCX: {e}")
-        
-    return out_p
-
-def pdf_to_xlsx(input_path: str, output_dir: str) -> Path:
-    """
-    Convert PDF to .xlsx via LibreOffice.
-    
-    Args:
-        input_path (str): Path to input PDF file.
-        output_dir (str): Directory to save the resulting .xlsx.
-        
-    Returns:
-        Path: Output .xlsx path.
-        
-    Raises:
-        FileNotFoundError: If the input file does not exist.
-        InvalidFileError: If the input file is not a valid PDF.
-        ConversionError: If the conversion fails.
-    """
-    validate_pdf(input_path)
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'xlsx')
-
-def pdf_to_pptx(input_path: str, output_dir: str) -> Path:
-    """
-    Convert PDF to .pptx via LibreOffice.
-    
-    Args:
-        input_path (str): Path to input PDF file.
-        output_dir (str): Directory to save the resulting .pptx.
-        
-    Returns:
-        Path: Output .pptx path.
-        
-    Raises:
-        FileNotFoundError: If the input file does not exist.
-        InvalidFileError: If the input file is not a valid PDF.
-        ConversionError: If the conversion fails.
-    """
-    validate_pdf(input_path)
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pptx')
-
-def pdf_to_images(input_path: str, output_dir: str, image_format: str = 'png', dpi: int = 200) -> list[Path]:
-    """
-    Render each PDF page to an image file using PyMuPDF.
-    
-    Args:
-        input_path (str): Path to input PDF file.
-        output_dir (str): Directory to save resulting images.
-        image_format (str): Image format ('png' or 'jpg'). Defaults to 'png'.
-        dpi (int): DPI for rendering. Defaults to 200.
-        
-    Returns:
-        list[Path]: List of output image paths.
-        
-    Raises:
-        FileNotFoundError: If the input file does not exist.
-        InvalidFileError: If the input file is not a valid PDF.
-        ConversionError: If the conversion fails or an invalid image format is provided.
-    """
-    validate_pdf(input_path)
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    if image_format not in ['png', 'jpg', 'jpeg']:
-        raise ConversionError(f"Unsupported image format: {image_format}")
-        
-    output_paths = []
-    stem = Path(input_path).stem
-    
-    try:
-        doc = fitz.open(input_path)
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap(dpi=dpi)
+        doc = pymupdf.open()
+        for img_path in input_paths:
+            img_doc = pymupdf.open(img_path)
+            pdf_bytes = img_doc.convert_to_pdf()
+            pdf_doc = pymupdf.open("pdf", pdf_bytes)
+            doc.insert_pdf(pdf_doc)
             
-            output_name = f"{stem}_page{page_num + 1}.{image_format}"
-            out_path = Path(output_dir) / output_name
-            
-            if image_format in ['jpg', 'jpeg']:
-                pix.save(str(out_path), output_opt="jpeg")
-            else:
-                pix.save(str(out_path))
-                
-            output_paths.append(out_path)
+        doc.save(output_path)
+        doc.close()
     except Exception as e:
-        raise ConversionError(f"Failed to convert PDF to images: {e}")
+        raise ConversionError(f"Failed to convert images to PDF: {e}")
         
-    return output_paths
+    return Path(output_path)

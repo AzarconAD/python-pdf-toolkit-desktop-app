@@ -1,17 +1,17 @@
 import os
 import zipfile
-import fitz # PyMuPDF
+import pymupdf # PyMuPDF
 
 def generate():
     # PDF
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page(width=595, height=842)
     page.insert_text((50, 50), "Hello World", fontsize=12)
     doc.save("sample.pdf")
     doc.close()
 
     # PNG
-    doc = fitz.open("sample.pdf")
+    doc = pymupdf.open("sample.pdf")
     page = doc[0]
     pix = page.get_pixmap(dpi=72)
     pix.save("sample.png")

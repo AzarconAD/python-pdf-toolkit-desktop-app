@@ -60,3 +60,4 @@ On finishing any task, report back:
 - For core_agent: test results (pass/fail count).
 - For gui_agent: any core/ functions it needed but didn't exist yet, or assumptions made about core's return values/exceptions.
 Keep it concise — bullet points, no prose padding.
+Do not claim "no deviations" without re-reading the actual spec section it applies to first (esp. file/module structure, function placement, naming) — a wrong confident claim is worse than flagging uncertainty.

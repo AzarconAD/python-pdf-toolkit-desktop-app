@@ -21,7 +21,7 @@ PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Windows-only. See ..
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase: 1 (Core skeleton + Convert module) — not yet started, spec written, awaiting core_agent execution.
+Phase: 1 and 2 done. Phase 3 (Organize tools) next — not yet started. Phase 2 not yet independently file-verified by planner (see project-plan.md note).
 
 ## Open items / not yet decided
 - Exact LibreOffice bundling mechanism for PyInstaller (deferred to Phase 5).
