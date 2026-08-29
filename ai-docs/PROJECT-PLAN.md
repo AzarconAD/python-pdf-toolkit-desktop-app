@@ -3,7 +3,7 @@
 ## Phases
 1. Core skeleton + Convert module (core_agent) — STATUS: done (47 tests, 41 passed/6 skipped/0 failed after correction pass; convert_to.py=PDF→other, convert_from.py=other→PDF per spec)
 2. GUI shell: sidebar dashboard + Convert views (gui_agent) — STATUS: done (module swap + import corrections verified, routing manually confirmed)
-3. Organize tools: merge/split/extract/delete/reorder/rotate (core_agent -> gui_agent) — STATUS: done
+3. Organize tools: merge/split/extract/delete/reorder/rotate (core_agent -> gui_agent) — STATUS: done (GUI superseded by redesign)
 4. Compress + Security: compress/protect/unlock/watermark/page_numbers (core_agent -> gui_agent) — STATUS: pending
 5. Polish + packaging: PyInstaller, bundle portable LibreOffice, icons, error states, styling — STATUS: pending
 
@@ -22,7 +22,15 @@ Prior Phase 2 (original structure) history: went through 4 correction rounds —
 
 ## Phase 3 detail (complete)
 Scope: Organize tools (merge/split/extract/delete/reorder/rotate) — core functions + GUI wiring.
-GUI wiring complete — sidebar Organize enabled, OrganizePage with 6 tool cards (Merge/Split/Extract/Delete/Reorder/Rotate), all wired to core.organize functions. Split tool includes live range preview (page grouping shown before commit, added after initial gap identified in review). Verified via full pytest suite (78 total, 72 passed, 6 skipped, 0 failed — unchanged from core-only count, as expected for GUI-layer work) plus a synthetic headless UI script exercising all 6 tools end-to-end.
+GUI wiring complete — sidebar Organize enabled, OrganizePage with 6 tool cards (Merge/Split/Extract/Delete/Reorder/Rotate), all wired to core.organize functions. Split tool includes live range preview (page grouping shown before commit, added after initial gap identified in review). Verified via full pytest suite (78 total, 72 passed, 6 skipped, 0 failed — unchanged from core-only count, as expected for GUI-layer work) plus a synthetic headless UI script exercising all 6 tools end-to-end. NOTE: The GUI portion of this phase is superseded by the GUI Redesign.
+
+## GUI Redesign (complete)
+Scope: Unified upload-first workflow replacing older paginated structures.
+- UnifiedWorkspacePage 4-state workflow implemented: State 1 (Empty DropZone), State 2 (Loaded compact DropZone + File Previews), State 3 (Tool Controls + Grid Expansion), State 4 (Inline Results overlay with action buttons).
+- Legacy views deleted: `sidebar.py`, `convert_page.py`, `organize_page.py` completely removed and grep-confirmed zero remaining references.
+- Error Handling: New `gui/utils/error_messages.py` provides a friendly-error translation layer mapping backend exceptions to readable GUI strings.
+- Validation: 78 tests total (72 passed, 6 skipped, 0 failed). Human click-through explicitly confirmed by user.
+- Incident Log: Agent made unauthorized core edit (`pymupdf._g_out_message` suppression in `core/convert_to.py`), and bundled 8 subtasks simultaneously instead of adhering to the one-task-per-prompt rule. The core patch was reverted natively.
 
 ## Phase 4 detail (next)
 Scope: Compress + Security — compress_pdf, protect_pdf, unlock_pdf, add_watermark, add_page_numbers. Core functions + GUI wiring.

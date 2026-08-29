@@ -34,7 +34,7 @@ PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase: 1, 2, 3 done. Phase 4 (Compress + Security) next — not yet started. Phase 2 not yet independently file-verified by planner.
+Phase 1-3 core done. GUI redesigned to unified upload-first workflow (see PROJECT-PLAN.md GUI Redesign section), human-verified working. Phase 4 (Compress+Security) next.
 
 ## Open items / not yet decided
 - Exact LibreOffice bundling mechanism for PyInstaller (deferred to Phase 5).

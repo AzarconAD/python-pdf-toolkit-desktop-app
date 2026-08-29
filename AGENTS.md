@@ -12,32 +12,36 @@
 - Office conv: bundled portable LibreOffice via subprocess (`office_bridge.py`), headless.
 - Packaging: PyInstaller (single exe, bundles portable LibreOffice).
 - Tests: pytest.
+- Edits to existing files: provide only the changed code block(s) + exact location (function name / line context / before-after anchor). Do not reprint or rewrite entire files for partial changes. Full-file output only for brand-new files.
 
 ## Layout
 ```
 pdf_toolkit/
 ├── AGENTS.md   # this file, root, always read first
-├── docs/
-│   ├── context.md        # current state, read at start of new session
-│   ├── project-plan.md   # phases, status
-│   └── changelog.md      # major features/architecture only
+├── ai-docs/
+│   ├── CONTEXT.md        # current state, read at start of new session
+│   ├── PROJECT-PLAN.md   # phases, status
+│   ├── CHANGELOG.md      # major features/architecture only
+│   └── CLEANUP.md        # cleanup-pass instructions
 ├── core/       # core_agent. Pure functions. No Qt imports. No file dialogs. No print().
 ├── gui/        # gui_agent. PySide6 only. No PDF-processing logic — calls core/ only.
 │   ├── main_window.py
 │   ├── pages/
-│   │   └── convert_page.py   # unified single-screen Convert view (tool selector + dropzone combined)
+│   │   └── workspace_page.py
 │   ├── styles/
 │   │   └── theme.py          # single source of truth for all hex colors — no hardcoded hex elsewhere
 │   ├── utils/
-│   │   └── icons.py          # SVG->QIcon renderer, must reference theme.py constants
+│   │   ├── error_messages.py
+│   │   ├── icons.py          # SVG->QIcon renderer, must reference theme.py constants
+│   │   └── thumbnails.py
 │   └── widgets/
 │       ├── drop_zone.py
-│       └── sidebar.py
+│       └── page_thumbnail_grid.py
 ├── main.py     # entry point, wires gui -> core
 ├── tests/      # core_agent. pytest, one file per core module.
 └── requirements.txt
 ```
-Note: original Phase 2 spec had separate HomePage + ConvertToolPage; superseded by unified convert_page.py per updated mockup-matching layout (see project-plan.md Phase 2 note).
+Note: sidebar.py, convert_page.py, organize_page.py deleted - superseded by workspace_page.py. Grep-confirmed zero refs.
 
 ## Contract (core <-> gui)
 - core functions: primitive args only (str, list, int, dict). Return output path(s) or raise.
@@ -48,8 +52,10 @@ Note: original Phase 2 spec had separate HomePage + ConvertToolPage; superseded 
 - Processing: synchronous, blocking OK. Show modal indeterminate progress dialog during run (no threading required).
 
 ## Config
-- Decisions log: see docs/context.md "Locked decisions" — do not re-litigate without asking user.
-- Task sizing: planner sends ONE focused task per prompt (single file, or a tightly related handful of functions/components), not multi-task specs bundling 4-6 items. Large phases get broken into a sequence of small prompts, sent and confirmed one at a time. If a task naturally needs 5+ subtasks, that's a signal to split it, not a reason to write a longer prompt.
+- Decisions log: see ai-docs/CONTEXT.md "Locked decisions" — do not re-litigate without asking user.
+- Task sizing: ONE task per prompt. No batching. Agent does not proceed to a later task in a sequence (esp. cleanup/deletion) until planner explicitly confirms prior task — never assume "should also do X."
+- core/ is off-limits to gui_agent, no exceptions, including trivial fixes (e.g. warning suppression). Flag mismatches/issues to planner instead of patching core directly.
+- Planner writes agent-facing prompts dense/imperative, token-minimal, no prose padding. Human readability of the prompt is not a goal — agent comprehension is.
 
 ## Git
 - Commit format: `TYPE - {files}: {summary}`
@@ -58,9 +64,9 @@ Note: original Phase 2 spec had separate HomePage + ConvertToolPage; superseded 
 - Commit ONLY when explicitly requested by user. Never auto-commit.
 
 ## Doc update rules
-- docs/changelog.md: update only on major completed feature or architecture change (not every task).
-- docs/context.md: keep current, rewrite freely as project evolves.
-- docs/project-plan.md: update phase status as phases complete/change.
+- ai-docs/CHANGELOG.md: update only on major completed feature or architecture change (not every task).
+- ai-docs/CONTEXT.md: keep current, rewrite freely as project evolves.
+- ai-docs/PROJECT-PLAN.md: update phase status as phases complete/change.
 
 ## Completion report (required after every task)
 On finishing any task, report back:
