@@ -3,8 +3,7 @@ from pathlib import Path
 import io
 import contextlib
 
-with contextlib.redirect_stdout(io.StringIO()):
-    from pdf2docx import Converter
+from pdf2docx import Converter
 
 import pymupdf
 from .utils import validate_pdf, ensure_output_dir, ConversionError
@@ -33,9 +32,10 @@ def pdf_to_docx(input_path: str, output_dir: str) -> Path:
     out_p = Path(output_dir) / f"{in_p.stem}.docx"
     
     try:
-        cv = Converter(input_path)
-        cv.convert(str(out_p), start=0, end=None)
-        cv.close()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            cv = Converter(input_path)
+            cv.convert(str(out_p), start=0, end=None)
+            cv.close()
     except Exception as e:
         raise ConversionError(f"Failed to convert PDF to DOCX: {e}")
         

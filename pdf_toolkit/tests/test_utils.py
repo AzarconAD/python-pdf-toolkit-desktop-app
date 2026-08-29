@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from pdf_toolkit.core.utils import (
+from core.utils import (
     validate_file_exists,
     validate_extension,
     get_unique_output_path,

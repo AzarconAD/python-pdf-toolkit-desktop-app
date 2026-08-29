@@ -3,7 +3,7 @@ import shutil
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from pdf_toolkit.core.convert_to import pdf_to_docx, pdf_to_xlsx, pdf_to_images, pdf_to_pptx
+from core.convert_to import pdf_to_docx, pdf_to_xlsx, pdf_to_images, pdf_to_pptx
 
 soffice_available = shutil.which("soffice") is not None or any(
     Path(p).exists() for p in [
@@ -13,7 +13,7 @@ soffice_available = shutil.which("soffice") is not None or any(
 )
 
 # pdf_to_docx tests
-@patch("pdf_toolkit.core.convert_to.Converter")
+@patch("core.convert_to.Converter")
 def test_pdf_to_docx_success(mock_converter_class, sample_pdf, tmp_out_dir):
     mock_cv = MagicMock()
     mock_converter_class.return_value = mock_cv
@@ -33,12 +33,12 @@ def test_pdf_to_docx_missing(tmp_out_dir):
 def test_pdf_to_docx_wrong_ext(sample_png, tmp_out_dir):
     # Using sample_png instead of a PDF
     # This actually throws InvalidFileError for wrong %PDF header because validate_pdf relies on header, not extension
-    from pdf_toolkit.core.utils import InvalidFileError
+    from core.utils import InvalidFileError
     with pytest.raises(InvalidFileError):
         pdf_to_docx(sample_png, str(tmp_out_dir))
 
 # pdf_to_xlsx tests
-@patch("pdf_toolkit.core.convert_to.run_soffice_conversion")
+@patch("core.convert_to.run_soffice_conversion")
 def test_pdf_to_xlsx_success(mock_run, sample_pdf, tmp_out_dir):
     expected_out = tmp_out_dir / "sample.xlsx"
     mock_run.return_value = expected_out
@@ -53,7 +53,7 @@ def test_pdf_to_xlsx_missing(tmp_out_dir):
         pdf_to_xlsx("not_exist.pdf", str(tmp_out_dir))
 
 def test_pdf_to_xlsx_wrong_ext(sample_png, tmp_out_dir):
-    from pdf_toolkit.core.utils import InvalidFileError
+    from core.utils import InvalidFileError
     with pytest.raises(InvalidFileError):
         pdf_to_xlsx(sample_png, str(tmp_out_dir))
 
@@ -64,7 +64,7 @@ def test_pdf_to_xlsx_integration(sample_pdf, tmp_out_dir):
     assert os.path.getsize(res) > 0
 
 # pdf_to_pptx tests
-@patch("pdf_toolkit.core.convert_to.run_soffice_conversion")
+@patch("core.convert_to.run_soffice_conversion")
 def test_pdf_to_pptx_success(mock_run, sample_pdf, tmp_out_dir):
     expected_out = tmp_out_dir / "sample.pptx"
     mock_run.return_value = expected_out
@@ -79,7 +79,7 @@ def test_pdf_to_pptx_missing(tmp_out_dir):
         pdf_to_pptx("not_exist.pdf", str(tmp_out_dir))
 
 def test_pdf_to_pptx_wrong_ext(sample_png, tmp_out_dir):
-    from pdf_toolkit.core.utils import InvalidFileError
+    from core.utils import InvalidFileError
     with pytest.raises(InvalidFileError):
         pdf_to_pptx(sample_png, str(tmp_out_dir))
 
@@ -90,7 +90,7 @@ def test_pdf_to_pptx_integration(sample_pdf, tmp_out_dir):
     assert os.path.getsize(res) > 0
 
 # pdf_to_images tests
-@patch("pdf_toolkit.core.convert_to.pymupdf.open")
+@patch("core.convert_to.pymupdf.open")
 def test_pdf_to_images_success(mock_fitz_open, sample_pdf, tmp_out_dir):
     mock_doc = MagicMock()
     mock_doc.__len__.return_value = 2
@@ -114,6 +114,6 @@ def test_pdf_to_images_missing(tmp_out_dir):
         pdf_to_images("not_exist.pdf", str(tmp_out_dir))
 
 def test_pdf_to_images_wrong_ext(sample_png, tmp_out_dir):
-    from pdf_toolkit.core.utils import InvalidFileError
+    from core.utils import InvalidFileError
     with pytest.raises(InvalidFileError):
         pdf_to_images(sample_png, str(tmp_out_dir))

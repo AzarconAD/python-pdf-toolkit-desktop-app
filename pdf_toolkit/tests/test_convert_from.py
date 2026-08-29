@@ -3,7 +3,7 @@ import shutil
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from pdf_toolkit.core.convert_from import docx_to_pdf, xlsx_to_pdf, pptx_to_pdf, images_to_pdf
+from core.convert_from import docx_to_pdf, xlsx_to_pdf, pptx_to_pdf, images_to_pdf
 
 soffice_available = shutil.which("soffice") is not None or any(
     Path(p).exists() for p in [
@@ -13,7 +13,7 @@ soffice_available = shutil.which("soffice") is not None or any(
 )
 
 # docx_to_pdf tests
-@patch("pdf_toolkit.core.convert_from.run_soffice_conversion")
+@patch("core.convert_from.run_soffice_conversion")
 def test_docx_to_pdf_success(mock_run, sample_docx, tmp_out_dir):
     # Happy path mocked
     expected = tmp_out_dir / "sample.pdf"
@@ -39,7 +39,7 @@ def test_docx_to_pdf_integration(sample_docx, tmp_out_dir):
     assert os.path.getsize(res) > 0
 
 # xlsx_to_pdf tests
-@patch("pdf_toolkit.core.convert_from.run_soffice_conversion")
+@patch("core.convert_from.run_soffice_conversion")
 def test_xlsx_to_pdf_success(mock_run, sample_xlsx, tmp_out_dir):
     expected = tmp_out_dir / "sample.pdf"
     mock_run.return_value = expected
@@ -63,7 +63,7 @@ def test_xlsx_to_pdf_integration(sample_xlsx, tmp_out_dir):
     assert os.path.getsize(res) > 0
 
 # pptx_to_pdf tests
-@patch("pdf_toolkit.core.convert_from.run_soffice_conversion")
+@patch("core.convert_from.run_soffice_conversion")
 def test_pptx_to_pdf_success(mock_run, sample_pptx, tmp_out_dir):
     expected = tmp_out_dir / "sample.pdf"
     mock_run.return_value = expected
@@ -87,7 +87,7 @@ def test_pptx_to_pdf_integration(sample_pptx, tmp_out_dir):
     assert os.path.getsize(res) > 0
 
 # images_to_pdf tests
-@patch("pdf_toolkit.core.convert_from.pymupdf")
+@patch("core.convert_from.pymupdf")
 def test_images_to_pdf_success(mock_pymupdf, sample_png, tmp_out_dir):
     out_pdf = str(tmp_out_dir / "out.pdf")
     
