@@ -10,59 +10,58 @@ class DropZone(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAcceptDrops(True)
+        
+        from gui.styles.theme import BORDER, ACCENT, TEXT_SECONDARY, SURFACE, SURFACE_ELEVATED
         
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignCenter)
         
         self.label = QLabel("Drag & Drop files here\nor")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("color: #666; font-size: 14px; font-weight: bold; background: transparent;")
+        self.label.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 14px; font-weight: bold; background: transparent;")
         
         self.browse_btn = QPushButton("Browse Files")
         self.browse_btn.setCursor(Qt.PointingHandCursor)
         self.browse_btn.setFixedWidth(120)
-        self.browse_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f0f0f0; border: 1px solid #ccc;
-                border-radius: 4px; padding: 6px; font-size: 13px;
-            }
-            QPushButton:hover { background-color: #e4e4e4; }
-        """)
+        # Relying on global stylesheet for base button styling
         self.browse_btn.clicked.connect(self.browse_clicked.emit)
         
         layout.addWidget(self.label)
         layout.addWidget(self.browse_btn, alignment=Qt.AlignHCenter)
         
         # Base styling
-        self.setStyleSheet("""
-            DropZone {
-                border: 2px dashed #b0b0b0;
+        self.setStyleSheet(f"""
+            DropZone {{
+                border: 2px dashed {BORDER};
                 border-radius: 8px;
-                background-color: #fafafa;
-            }
+                background-color: {SURFACE};
+            }}
         """)
         
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.accept()
-            self.setStyleSheet("""
-                DropZone {
-                    border: 2px dashed #0078D7;
+            from gui.styles.theme import ACCENT, SURFACE_ELEVATED
+            self.setStyleSheet(f"""
+                DropZone {{
+                    border: 2px dashed {ACCENT};
                     border-radius: 8px;
-                    background-color: #e5f0fa;
-                }
+                    background-color: {SURFACE_ELEVATED};
+                }}
             """)
         else:
             event.ignore()
             
     def dragLeaveEvent(self, event):
-        self.setStyleSheet("""
-            DropZone {
-                border: 2px dashed #b0b0b0;
+        from gui.styles.theme import BORDER, SURFACE
+        self.setStyleSheet(f"""
+            DropZone {{
+                border: 2px dashed {BORDER};
                 border-radius: 8px;
-                background-color: #fafafa;
-            }
+                background-color: {SURFACE};
+            }}
         """)
         
     def dropEvent(self, event):
