@@ -4,7 +4,6 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from pdf_toolkit.core.convert_to import pdf_to_docx, pdf_to_xlsx, pdf_to_images, pdf_to_pptx
-from pdf_toolkit.core.utils import ConversionError
 
 soffice_available = shutil.which("soffice") is not None or any(
     Path(p).exists() for p in [

@@ -1,9 +1,21 @@
 # CONTEXT
 
-PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Windows-only. See ../AGENTS.md for stack/roles/contract, project-plan.md (same dir) for phases/status.
+PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Windows-only. See ../AGENTS.md for stack/roles/contract, project-plan.md (same dir) for phases/status.
 
 ## Locked decisions
+- App name: PDF Toolbox
 - Layout: single window, sidebar dashboard, all tools visible.
+- Theme: dark mode only (MVP), professional/utility feel, one accent color (no multi-color UI).
+- Color palette (hex):
+  - Page bg: #121317
+  - Surface (cards, sidebar): #1B1D22
+  - Surface elevated (hover/active): #24262C
+  - Border: #33353C
+  - Text primary: #EAEAEC
+  - Text secondary: #9497A0
+  - Accent (active nav, primary buttons): #4C8DFF
+  - Success: #34D399 | Error: #F87171 | Warning: #FBBF24
+  - Text-on-accent (e.g. button label on #4C8DFF fill): #0A1830 (dark navy, not black/white)
 - Batch processing: default on where applicable (merge, compress, convert).
 - OS: Windows only.
 - Output: user picks save location every run, no default output folder.

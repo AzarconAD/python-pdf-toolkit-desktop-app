@@ -17,16 +17,27 @@
 ```
 pdf_toolkit/
 ├── AGENTS.md   # this file, root, always read first
-├── ai-docs/
+├── docs/
 │   ├── context.md        # current state, read at start of new session
 │   ├── project-plan.md   # phases, status
 │   └── changelog.md      # major features/architecture only
 ├── core/       # core_agent. Pure functions. No Qt imports. No file dialogs. No print().
 ├── gui/        # gui_agent. PySide6 only. No PDF-processing logic — calls core/ only.
+│   ├── main_window.py
+│   ├── pages/
+│   │   └── convert_page.py   # unified single-screen Convert view (tool selector + dropzone combined)
+│   ├── styles/
+│   │   └── theme.py          # single source of truth for all hex colors — no hardcoded hex elsewhere
+│   ├── utils/
+│   │   └── icons.py          # SVG->QIcon renderer, must reference theme.py constants
+│   └── widgets/
+│       ├── drop_zone.py
+│       └── sidebar.py
 ├── main.py     # entry point, wires gui -> core
 ├── tests/      # core_agent. pytest, one file per core module.
 └── requirements.txt
 ```
+Note: original Phase 2 spec had separate HomePage + ConvertToolPage; superseded by unified convert_page.py per updated mockup-matching layout (see project-plan.md Phase 2 note).
 
 ## Contract (core <-> gui)
 - core functions: primitive args only (str, list, int, dict). Return output path(s) or raise.
@@ -38,6 +49,7 @@ pdf_toolkit/
 
 ## Config
 - Decisions log: see docs/context.md "Locked decisions" — do not re-litigate without asking user.
+- Task sizing: planner sends ONE focused task per prompt (single file, or a tightly related handful of functions/components), not multi-task specs bundling 4-6 items. Large phases get broken into a sequence of small prompts, sent and confirmed one at a time. If a task naturally needs 5+ subtasks, that's a signal to split it, not a reason to write a longer prompt.
 
 ## Git
 - Commit format: `TYPE - {files}: {summary}`

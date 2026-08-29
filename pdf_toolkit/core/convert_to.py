@@ -6,7 +6,7 @@ import contextlib
 with contextlib.redirect_stdout(io.StringIO()):
     from pdf2docx import Converter
 
-import pymupdf  # PyMuPDF
+import pymupdf
 from .utils import validate_pdf, ensure_output_dir, ConversionError
 from .office_bridge import run_soffice_conversion
 
@@ -41,6 +41,11 @@ def pdf_to_docx(input_path: str, output_dir: str) -> Path:
         
     return out_p
 
+def _pdf_to_office(input_path: str, output_dir: str, target_format: str) -> Path:
+    validate_pdf(input_path)
+    ensure_output_dir(os.path.join(output_dir, "dummy"))
+    return run_soffice_conversion(Path(input_path), Path(output_dir), target_format)
+
 def pdf_to_xlsx(input_path: str, output_dir: str) -> Path:
     """
     Convert PDF to .xlsx via LibreOffice.
@@ -57,10 +62,7 @@ def pdf_to_xlsx(input_path: str, output_dir: str) -> Path:
         InvalidFileError: If the input file is not a valid PDF.
         ConversionError: If the conversion fails.
     """
-    validate_pdf(input_path)
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'xlsx')
+    return _pdf_to_office(input_path, output_dir, 'xlsx')
 
 def pdf_to_pptx(input_path: str, output_dir: str) -> Path:
     """
@@ -78,10 +80,7 @@ def pdf_to_pptx(input_path: str, output_dir: str) -> Path:
         InvalidFileError: If the input file is not a valid PDF.
         ConversionError: If the conversion fails.
     """
-    validate_pdf(input_path)
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pptx')
+    return _pdf_to_office(input_path, output_dir, 'pptx')
 
 def pdf_to_images(input_path: str, output_dir: str, image_format: str = 'png', dpi: int = 200) -> list[Path]:
     """

@@ -1,4 +1,3 @@
-import os
 import pytest
 from pathlib import Path
 from pdf_toolkit.core.utils import (

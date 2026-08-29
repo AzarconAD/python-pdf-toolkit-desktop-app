@@ -1,8 +1,14 @@
 import os
-import pymupdf  # PyMuPDF
+import pymupdf
 from pathlib import Path
 from .utils import validate_file_exists, validate_extension, ensure_output_dir, ConversionError
 from .office_bridge import run_soffice_conversion
+
+def _office_to_pdf(input_path: str, output_dir: str, ext: str) -> Path:
+    validate_file_exists(input_path)
+    validate_extension(input_path, [ext])
+    ensure_output_dir(os.path.join(output_dir, "dummy"))
+    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
 
 def docx_to_pdf(input_path: str, output_dir: str) -> Path:
     """
@@ -20,11 +26,7 @@ def docx_to_pdf(input_path: str, output_dir: str) -> Path:
         ValueError: If the input file does not have a .docx extension.
         ConversionError: If the conversion fails.
     """
-    validate_file_exists(input_path)
-    validate_extension(input_path, ['docx'])
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+    return _office_to_pdf(input_path, output_dir, 'docx')
 
 def xlsx_to_pdf(input_path: str, output_dir: str) -> Path:
     """
@@ -42,11 +44,7 @@ def xlsx_to_pdf(input_path: str, output_dir: str) -> Path:
         ValueError: If the input file does not have a .xlsx extension.
         ConversionError: If the conversion fails.
     """
-    validate_file_exists(input_path)
-    validate_extension(input_path, ['xlsx'])
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+    return _office_to_pdf(input_path, output_dir, 'xlsx')
 
 def pptx_to_pdf(input_path: str, output_dir: str) -> Path:
     """
@@ -61,14 +59,10 @@ def pptx_to_pdf(input_path: str, output_dir: str) -> Path:
         
     Raises:
         FileNotFoundError: If the input file does not exist.
-        ValueError: If the input file does not have a .xlsx extension.
+        ValueError: If the input file does not have a .pptx extension.
         ConversionError: If the conversion fails.
     """
-    validate_file_exists(input_path)
-    validate_extension(input_path, ['pptx'])
-    ensure_output_dir(os.path.join(output_dir, "dummy"))
-    
-    return run_soffice_conversion(Path(input_path), Path(output_dir), 'pdf')
+    return _office_to_pdf(input_path, output_dir, 'pptx')
 
 def images_to_pdf(input_paths: list[str], output_path: str) -> Path:
     """
