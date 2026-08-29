@@ -49,3 +49,14 @@ pdf_toolkit/
 - docs/changelog.md: update only on major completed feature or architecture change (not every task).
 - docs/context.md: keep current, rewrite freely as project evolves.
 - docs/project-plan.md: update phase status as phases complete/change.
+
+## Completion report (required after every task)
+On finishing any task, report back:
+- Files created/modified (path list).
+- What was built — 1 line per function/component.
+- Key implementation decisions (esp. anything not explicitly specified in the task prompt — e.g. library choice, edge-case handling).
+- Deviations from spec, if any, and why.
+- Known issues / things not handled / TODOs.
+- For core_agent: test results (pass/fail count).
+- For gui_agent: any core/ functions it needed but didn't exist yet, or assumptions made about core's return values/exceptions.
+Keep it concise — bullet points, no prose padding.
