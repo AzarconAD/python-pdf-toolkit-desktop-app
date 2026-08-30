@@ -212,9 +212,14 @@ class UnifiedWorkspacePage(QWidget):
         header_layout.addWidget(self.back_btn)
         header_layout.addSpacing(16)
 
+        from PySide6.QtGui import QPixmap
+        from pathlib import Path
         app_icon = QLabel()
+        logo_path = str(Path(__file__).parent.parent.parent / "assets" / "app_icon.png")
+        pixmap = QPixmap(logo_path).scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        app_icon.setPixmap(pixmap)
         app_icon.setFixedSize(22, 22)
-        app_icon.setStyleSheet(f"background-color: {ACCENT}; border-radius: 4px; border: none;")
+        app_icon.setStyleSheet("border: none; background: transparent;")
         
         app_title = QLabel("PDF ToolBox")
         app_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: 500; border: none; background: transparent;")
