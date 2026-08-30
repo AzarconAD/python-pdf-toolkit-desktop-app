@@ -4,7 +4,7 @@
 1. Core skeleton + Convert module (core_agent) — STATUS: done (47 tests, 41 passed/6 skipped/0 failed after correction pass; convert_to.py=PDF→other, convert_from.py=other→PDF per spec)
 2. GUI shell: sidebar dashboard + Convert views (gui_agent) — STATUS: done (module swap + import corrections verified, routing manually confirmed)
 3. Organize tools: merge/split/extract/delete/reorder/rotate (core_agent -> gui_agent) — STATUS: done (GUI superseded by redesign)
-4. Compress + Security: compress/protect/unlock/watermark/page_numbers (core_agent -> gui_agent) — STATUS: pending
+4. Compress + Security: compress/protect/unlock/watermark/page_numbers (core_agent -> gui_agent) — STATUS: done
 5. Polish + packaging: PyInstaller, bundle portable LibreOffice, icons, error states, styling — STATUS: pending
 
 ## Phase 1 detail (complete)
@@ -32,8 +32,17 @@ Scope: Unified upload-first workflow replacing older paginated structures.
 - Validation: 78 tests total (72 passed, 6 skipped, 0 failed). Human click-through explicitly confirmed by user.
 - Incident Log: Agent made unauthorized core edit (`pymupdf._g_out_message` suppression in `core/convert_to.py`), and bundled 8 subtasks simultaneously instead of adhering to the one-task-per-prompt rule. The core patch was reverted natively.
 
-## Phase 4 detail (next)
-Scope: Compress + Security — compress_pdf, protect_pdf, unlock_pdf, add_watermark, add_page_numbers. Core functions + GUI wiring.
+## Phase 4 detail (complete)
+Scope: Compress + Security — compress_pdf, protect_pdf/unlock_pdf, add_watermark, add_page_numbers, add_image_watermark. Core functions + GUI wiring.
+Core: core/security.py — all 5 functions. 103 passed / 6 skipped / 0 failed (109 total).
+GUI: all 5 tools wired into Home grid (Optimize + Security tabs enabled). Watermark tool: Text/Image mode toggle (segmented pill), per-row labeled controls, live auto-preview (600ms debounced QTimer, temp-file render via render_page_thumbnail, inline "Rendering…" indicator, placeholder on empty inputs). Two-card side-by-side layout (settings card left, live preview card right).
+compress_pdf fixes (3 root causes diagnosed + resolved):
+  - Fix 1 (always-overwrite guard): `or scale < 1.0` in replace condition unconditionally replaced even when recompressed was larger — removed.
+  - Fix 2 (ghost xref duplication): per-page `page.replace_image()` left orphaned old streams on shared-xref multi-page PDFs preventing garbage collection — replaced with document-level `doc.rewrite_images()`.
+  - Fix 3 (PNG→JPEG inflation): `lossless=True` converted efficient PNG charts to JPEG, bloating output — changed to `lossless=False` (leave lossless images untouched).
+  - Fix 4 (pymupdf serialiser overhead): pymupdf's writer inflates text/vector PDFs ~14% vs original — added Phase 2 pikepdf pass with `ObjectStreamMode.generate` to produce compact /ObjStm + /XRef streams. Net result: −9–12% on vector PDFs, −15–85% on image-heavy PDFs, never inflates.
+requirements.txt: PyMuPDF pinned to >=1.26.1 (rewrite_images introduced in that release).
+Other bugs fixed: incorrect-password infinite hang (missing IncorrectPasswordError import → silent NameError), mkstemp/get_unique_output_path temp-file collision (os.remove before core call, capture returned path).
 
 ## Status legend
 pending -> spec_written -> in_progress -> built -> reviewed -> done

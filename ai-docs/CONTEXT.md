@@ -34,7 +34,12 @@ PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase 1-3 core done. GUI redesigned to unified upload-first workflow (see PROJECT-PLAN.md GUI Redesign section), human-verified working. Phase 4 (Compress+Security) next.
+Phase 1–4 complete. Phase 5 (polish + packaging) next.
+
+Known issues flagged for Phase 5:
+- No global exception hook — unhandled slot exceptions can hang UI silently (demonstrated by password NameError bug).
+- compress_pdf now fully fixed (3 root causes resolved): ghost-xref duplication on shared images, always-overwrite guard, PNG→JPEG inflation. Two-phase pipeline: pymupdf `rewrite_images()` (JPEG-only re-encode) → pikepdf `ObjectStreamMode.generate` (structural compaction). Verified −9–12% on real vector PDF, −15–85% on image-heavy PDFs; never inflates.
+- Watermark live preview: debounced auto-preview (600ms QTimer), two-card side-by-side layout (settings card + live preview card), inline "Rendering…" indicator, placeholder when inputs empty.
 
 ## Open items / not yet decided
 - Exact LibreOffice bundling mechanism for PyInstaller (deferred to Phase 5).
