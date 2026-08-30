@@ -53,7 +53,10 @@ Note: sidebar.py, convert_page.py, organize_page.py deleted - superseded by work
 
 ## Config
 - Decisions log: see ai-docs/CONTEXT.md "Locked decisions" — do not re-litigate without asking user.
-- Task sizing: ONE task per prompt. No batching. Agent does not proceed to a later task in a sequence (esp. cleanup/deletion) until planner explicitly confirms prior task — never assume "should also do X."
+- Task sizing (tiered):
+  - Tier 1 (always isolated, one task per prompt, no exceptions): any core/ change, any file deletion/replacement, any architecture/routing change, anything affecting test counts.
+  - Tier 2 (safe to batch): styling, icons, copy, spacing, single-widget visual tweaks.
+  - Batched (Tier 2) completion reports must itemize each task's before/after evidence individually, in order — not one merged summary. Same evidence bar as a single task (literal grep/diff/test output, not "confirmed"/"verified" claims).
 - core/ is off-limits to gui_agent, no exceptions, including trivial fixes (e.g. warning suppression). Flag mismatches/issues to planner instead of patching core directly.
 - Planner writes agent-facing prompts dense/imperative, token-minimal, no prose padding. Human readability of the prompt is not a goal — agent comprehension is.
 
