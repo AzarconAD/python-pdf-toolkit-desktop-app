@@ -16,9 +16,9 @@ from gui.styles.theme import get_stylesheet
 
 def main():
     """Bootstrap the PySide6 application."""
-    print("PDF Toolbox GUI starting...")
+    print("PDF ToolBox GUI starting...")
     app = QApplication(sys.argv)
-    app.setApplicationName("PDF Toolbox")
+    app.setApplicationName("PDF ToolBox")
     
     from PySide6.QtGui import QIcon
     import os
@@ -29,7 +29,7 @@ def main():
     app.setFont(QFont("Segoe UI", 10))
     
     app.setStyleSheet(get_stylesheet())
-    app.setApplicationDisplayName("PDF Toolbox")
+    app.setApplicationDisplayName("PDF ToolBox")
     
     window = MainWindow()
     window.show()

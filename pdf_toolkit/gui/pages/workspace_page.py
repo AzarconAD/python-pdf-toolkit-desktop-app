@@ -216,7 +216,7 @@ class UnifiedWorkspacePage(QWidget):
         app_icon.setFixedSize(22, 22)
         app_icon.setStyleSheet(f"background-color: {ACCENT}; border-radius: 4px; border: none;")
         
-        app_title = QLabel("PDF Toolbox")
+        app_title = QLabel("PDF ToolBox")
         app_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 14px; font-weight: 500; border: none; background: transparent;")
         
         header_layout.addWidget(app_icon)

@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QStackedWidget
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PDF Toolbox")
+        self.setWindowTitle("PDF ToolBox")
         self.resize(1000, 700)
         
         central_widget = QWidget()

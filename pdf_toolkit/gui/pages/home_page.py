@@ -126,11 +126,23 @@ class HomePage(QWidget):
         
         # Titles Container
         titles_layout = QVBoxLayout()
-        titles_layout.setSpacing(8)
+        titles_layout.setSpacing(12)
         titles_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
+        from PySide6.QtGui import QPixmap
+        from pathlib import Path
+        
+        # Logo
+        logo_lbl = QLabel()
+        logo_path = str(Path(__file__).parent.parent.parent / "assets" / "app_icon.png")
+        pixmap = QPixmap(logo_path).scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        logo_lbl.setPixmap(pixmap)
+        logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_lbl.setStyleSheet("border: none; background: transparent;")
+        titles_layout.addWidget(logo_lbl)
+        
         # Hero Title
-        hero_title = QLabel("PDF Toolbox")
+        hero_title = QLabel("PDF ToolBox")
         hero_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 36px; font-weight: bold; border: none; background: transparent;")
         hero_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titles_layout.addWidget(hero_title)
