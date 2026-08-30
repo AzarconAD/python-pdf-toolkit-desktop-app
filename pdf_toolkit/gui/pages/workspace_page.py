@@ -1,7 +1,8 @@
 import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                QPushButton, QFileDialog, QFrame, QScrollArea,
-                               QComboBox, QRadioButton, QSpinBox, QStackedWidget, QSpacerItem, QSizePolicy)
+                               QComboBox, QRadioButton, QSpinBox, QStackedWidget, QSpacerItem, QSizePolicy, QLineEdit, QSlider)
+from PySide6.QtCore import QTimer
 from PySide6.QtCore import Qt, Signal
 
 from gui.widgets.drop_zone import DropZone
@@ -14,6 +15,8 @@ from gui.utils.error_messages import friendly_message
 from core.convert_to import pdf_to_docx, pdf_to_xlsx, pdf_to_pptx, pdf_to_images
 from core.convert_from import docx_to_pdf, xlsx_to_pdf, pptx_to_pdf, images_to_pdf
 from core.organize import merge_pdfs, split_pdf, extract_pages, delete_pages, reorder_pages, rotate_pages
+from core.security import compress_pdf, protect_pdf, unlock_pdf, add_watermark, add_page_numbers
+from core.utils import IncorrectPasswordError
 from PySide6.QtWidgets import QProgressDialog, QMessageBox, QApplication
 
 class FilePreviewWidget(QFrame):
@@ -84,18 +87,7 @@ class FilePreviewWidget(QFrame):
         header_layout.addLayout(text_layout)
         header_layout.addStretch()
         
-        # Preview Toggle Button
-        if self.is_pdf:
-            self.toggle_btn = QPushButton("Preview full document")
-            self.toggle_btn.setCursor(Qt.PointingHandCursor)
-            self.toggle_btn.setStyleSheet(f"""
-                QPushButton {{
-                    color: {ACCENT}; background-color: transparent; border: none; font-weight: bold;
-                }}
-                QPushButton:hover {{ text-decoration: underline; }}
-            """)
-            self.toggle_btn.clicked.connect(self._toggle_preview)
-            header_layout.addWidget(self.toggle_btn)
+        # Preview Toggle Button removed as per request
             
         self.remove_btn = QPushButton()
         self.remove_btn.setFixedSize(24, 24)
@@ -158,7 +150,7 @@ class FilePreviewWidget(QFrame):
         if expanded and self.preview_expanded:
             self.set_grid_expanded(False)
             
-        self.toggle_btn.setText("Hide full document" if expanded else "Preview full document")
+
 
     def set_grid_expanded(self, expanded: bool):
         if not hasattr(self, 'grid_container'): return
@@ -169,13 +161,9 @@ class FilePreviewWidget(QFrame):
             self.grid_container.setVisible(True)
             if getattr(self, 'reader_expanded', False):
                 self.set_reader_expanded(False)
-            self.toggle_btn.setText("Hide grid" if expanded else "Preview full document")
-            self.toggle_btn.setVisible(False) # Hide toggle in grid mode for simplicity
         else:
             self.preview_mode = 'reader'
             self.grid_container.setVisible(False)
-            self.toggle_btn.setVisible(True)
-            self.toggle_btn.setText("Preview full document")
 
 class UnifiedWorkspacePage(QWidget):
     """
@@ -319,6 +307,257 @@ class UnifiedWorkspacePage(QWidget):
         rl.addStretch()
         self.controls_layout.addWidget(self.rotate_controls)
         self.rotate_controls.setVisible(False)
+        
+        # Compress controls
+        self.compress_controls = QWidget()
+        cl = QHBoxLayout(self.compress_controls)
+        cl.setContentsMargins(0, 0, 0, 0)
+        lbl_quality = QLabel("Quality:")
+        lbl_quality.setStyleSheet(f"color: {TEXT_PRIMARY};")
+        self.quality_combo = QComboBox()
+        self.quality_combo.addItems(["Low", "Medium", "High"])
+        self.quality_combo.setCurrentText("Medium")
+        self.quality_combo.setStyleSheet(f"background-color: transparent; color: {TEXT_PRIMARY}; border: 1px solid {BORDER};")
+        cl.addWidget(lbl_quality)
+        cl.addWidget(self.quality_combo)
+        cl.addStretch()
+        self.controls_layout.addWidget(self.compress_controls)
+        self.compress_controls.setVisible(False)
+        
+        # Password controls (for protect and unlock)
+        self.password_controls = QWidget()
+        pl = QHBoxLayout(self.password_controls)
+        pl.setContentsMargins(0, 0, 0, 0)
+        lbl_password = QLabel("Password:")
+        lbl_password.setStyleSheet(f"color: {TEXT_PRIMARY};")
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.setStyleSheet(f"background-color: transparent; color: {TEXT_PRIMARY}; border: 1px solid {BORDER}; padding: 4px;")
+        self.password_input.setPlaceholderText("Enter password")
+        self.password_input.textChanged.connect(self._validate_password)
+        pl.addWidget(lbl_password)
+        pl.addWidget(self.password_input)
+        pl.addStretch()
+        self.controls_layout.addWidget(self.password_controls)
+        self.password_controls.setVisible(False)
+        
+                # Watermark controls (Parent container)
+        self.watermark_controls = QWidget()
+        wl_main = QHBoxLayout(self.watermark_controls)
+        wl_main.setContentsMargins(0, 0, 0, 0)
+        wl_main.setSpacing(16)
+        
+        # --- LEFT: Settings Card ---
+        self.wm_settings_card = QWidget()
+        self.wm_settings_card.setObjectName("WmSettingsCard")
+        self.wm_settings_card.setFixedWidth(280)
+        self.wm_settings_card.setStyleSheet(f"QWidget#WmSettingsCard {{ background-color: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}")
+        ws_layout = QVBoxLayout(self.wm_settings_card)
+        ws_layout.setContentsMargins(16, 16, 16, 16)
+        ws_layout.setSpacing(14)
+        
+        # Header
+        lbl_ws_head = QLabel("Watermark settings")
+        lbl_ws_head.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 13px; font-weight: 500;")
+        ws_layout.addWidget(lbl_ws_head)
+        
+        # Mode Toggle (Pill Segmented Control)
+        self.wm_mode_container = QWidget()
+        self.wm_mode_container.setStyleSheet(f"QWidget {{ background-color: {BG_PAGE}; border-radius: 6px; padding: 2px; }}")
+        wmode_layout = QHBoxLayout(self.wm_mode_container)
+        wmode_layout.setContentsMargins(2, 2, 2, 2)
+        wmode_layout.setSpacing(0)
+        
+        from PySide6.QtWidgets import QButtonGroup
+        self.wm_mode_grp = QButtonGroup(self)
+        
+        self.wm_mode_text = QPushButton("Text")
+        self.wm_mode_text.setCheckable(True)
+        self.wm_mode_text.setChecked(True)
+        self.wm_mode_text.setCursor(Qt.PointingHandCursor)
+        
+        self.wm_mode_image = QPushButton("Image")
+        self.wm_mode_image.setCheckable(True)
+        self.wm_mode_image.setCursor(Qt.PointingHandCursor)
+        
+        self.wm_mode_grp.addButton(self.wm_mode_text)
+        self.wm_mode_grp.addButton(self.wm_mode_image)
+        
+        import sys
+        TEXT_ON_ACCENT_LOCAL = getattr(sys.modules.get('gui.styles.theme'), 'TEXT_ON_ACCENT', '#0A1830')
+        toggle_qss = f"""
+            QPushButton {{
+                background-color: transparent; color: {TEXT_SECONDARY}; border: none; border-radius: 4px; padding: 6px 0px; font-weight: bold;
+            }}
+            QPushButton:checked {{
+                background-color: {ACCENT}; color: {TEXT_ON_ACCENT_LOCAL};
+            }}
+        """
+        self.wm_mode_text.setStyleSheet(toggle_qss)
+        self.wm_mode_image.setStyleSheet(toggle_qss)
+        
+        wmode_layout.addWidget(self.wm_mode_text)
+        wmode_layout.addWidget(self.wm_mode_image)
+        ws_layout.addWidget(self.wm_mode_container)
+        
+        self.wm_mode_text.toggled.connect(self._on_watermark_mode_changed)
+        
+        # TEXT SECTION
+        self.wm_text_widget = QWidget()
+        wt_layout = QVBoxLayout(self.wm_text_widget)
+        wt_layout.setContentsMargins(0, 0, 0, 0)
+        wt_layout.setSpacing(6)
+        lbl_wt = QLabel("Text")
+        lbl_wt.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        self.watermark_input = QLineEdit()
+        self.watermark_input.setStyleSheet(f"background-color: {BG_PAGE}; color: {TEXT_PRIMARY}; border: 1px solid {BORDER}; padding: 6px; border-radius: 4px;")
+        self.watermark_input.setPlaceholderText("Enter watermark text")
+        self.watermark_input.textChanged.connect(self._on_wm_text_changed)
+        wt_layout.addWidget(lbl_wt)
+        wt_layout.addWidget(self.watermark_input)
+        
+        # IMAGE SECTION
+        self.wm_image_widget = QWidget()
+        wi_layout = QVBoxLayout(self.wm_image_widget)
+        wi_layout.setContentsMargins(0, 0, 0, 0)
+        wi_layout.setSpacing(6)
+        
+        lbl_wi = QLabel("Image")
+        lbl_wi.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        
+        img_pick_layout = QHBoxLayout()
+        img_pick_layout.setContentsMargins(0, 0, 0, 0)
+        self.wm_img_btn = QPushButton("Select Image")
+        self.wm_img_btn.setCursor(Qt.PointingHandCursor)
+        self.wm_img_btn.setStyleSheet(f"background-color: {BG_PAGE}; color: {TEXT_PRIMARY}; border: 1px solid {BORDER}; padding: 4px 8px; border-radius: 4px;")
+        self.wm_img_btn.clicked.connect(self._select_watermark_image)
+        self.wm_img_path = ""
+        self.wm_img_lbl = QLabel("No image selected")
+        self.wm_img_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        img_pick_layout.addWidget(self.wm_img_btn)
+        img_pick_layout.addWidget(self.wm_img_lbl)
+        img_pick_layout.addStretch()
+        
+        self.wm_scale_header = QLabel("Scale: 0.30")
+        self.wm_scale_header.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px; margin-top: 8px;")
+        self.wm_scale_slider = QSlider(Qt.Horizontal)
+        self.wm_scale_slider.setRange(1, 100)
+        self.wm_scale_slider.setValue(30)
+        self.wm_scale_slider.valueChanged.connect(lambda v: self.wm_scale_header.setText(f"Scale: {v/100.0:.2f}"))
+        self.wm_scale_slider.sliderReleased.connect(self._trigger_auto_preview)
+        
+        wi_layout.addWidget(lbl_wi)
+        wi_layout.addLayout(img_pick_layout)
+        wi_layout.addWidget(self.wm_scale_header)
+        wi_layout.addWidget(self.wm_scale_slider)
+        
+        self.wm_image_widget.setVisible(False)
+        
+        # SHARED SETTINGS (Position, Opacity)
+        self.wm_shared_widget = QWidget()
+        wp_layout = QVBoxLayout(self.wm_shared_widget)
+        wp_layout.setContentsMargins(0, 0, 0, 0)
+        wp_layout.setSpacing(14)
+        
+        pos_layout = QVBoxLayout()
+        pos_layout.setContentsMargins(0, 0, 0, 0)
+        pos_layout.setSpacing(6)
+        lbl_wp = QLabel("Position")
+        lbl_wp.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        self.watermark_pos_combo = QComboBox()
+        self.watermark_pos_combo.addItems(["Center", "Diagonal", "Top", "Bottom"])
+        self.watermark_pos_combo.setStyleSheet(f"background-color: {BG_PAGE}; color: {TEXT_PRIMARY}; border: 1px solid {BORDER}; padding: 4px; border-radius: 4px;")
+        self.watermark_pos_combo.currentIndexChanged.connect(lambda: self.wm_preview_timer.start())
+        pos_layout.addWidget(lbl_wp)
+        pos_layout.addWidget(self.watermark_pos_combo)
+        
+        op_layout = QVBoxLayout()
+        op_layout.setContentsMargins(0, 0, 0, 0)
+        op_layout.setSpacing(6)
+        self.wm_op_header = QLabel("Opacity: 0.30")
+        self.wm_op_header.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px;")
+        self.watermark_op_slider = QSlider(Qt.Horizontal)
+        self.watermark_op_slider.setRange(10, 100)
+        self.watermark_op_slider.setValue(30)
+        self.watermark_op_slider.valueChanged.connect(lambda v: self.wm_op_header.setText(f"Opacity: {v/100.0:.2f}"))
+        self.watermark_op_slider.sliderReleased.connect(self._trigger_auto_preview)
+        op_layout.addWidget(self.wm_op_header)
+        op_layout.addWidget(self.watermark_op_slider)
+        
+        wp_layout.addLayout(pos_layout)
+        wp_layout.addLayout(op_layout)
+        
+        ws_layout.addWidget(self.wm_text_widget)
+        ws_layout.addWidget(self.wm_image_widget)
+        ws_layout.addWidget(self.wm_shared_widget)
+        ws_layout.addStretch()
+        
+        # --- RIGHT: Preview Card ---
+        self.wm_preview_card = QWidget()
+        self.wm_preview_card.setObjectName("WmPreviewCard")
+        self.wm_preview_card.setStyleSheet(f"QWidget#WmPreviewCard {{ background-color: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}")
+        wpc_layout = QVBoxLayout(self.wm_preview_card)
+        wpc_layout.setContentsMargins(16, 16, 16, 16)
+        wpc_layout.setSpacing(14)
+        
+        lbl_wpc_head = QLabel("Live preview")
+        lbl_wpc_head.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 13px; font-weight: 500;")
+        wpc_layout.addWidget(lbl_wpc_head)
+        
+        self.wm_preview_scroll = QScrollArea()
+        self.wm_preview_scroll.setWidgetResizable(True)
+        self.wm_preview_scroll.setStyleSheet(f"QScrollArea {{ background-color: {BG_PAGE}; border-radius: 8px; border: none; }}")
+        
+        self.wm_preview_container = QWidget()
+        self.wm_preview_container.setStyleSheet("background-color: transparent;")
+        self.wm_preview_layout = QVBoxLayout(self.wm_preview_container)
+        self.wm_preview_layout.setAlignment(Qt.AlignCenter)
+        
+        self._show_wm_placeholder()
+        
+        self.wm_preview_scroll.setWidget(self.wm_preview_container)
+        wpc_layout.addWidget(self.wm_preview_scroll)
+        
+        # Add cards to main watermark layout
+        wl_main.addWidget(self.wm_settings_card)
+        wl_main.addWidget(self.wm_preview_card, 1) # stretch factor 1 so preview takes remaining space
+        
+        self.controls_layout.addWidget(self.watermark_controls)
+        self.watermark_controls.setVisible(False)
+        
+        # Auto-preview debounce timer
+        self.wm_preview_timer = QTimer(self)
+        self.wm_preview_timer.setSingleShot(True)
+        self.wm_preview_timer.setInterval(600)
+        self.wm_preview_timer.timeout.connect(self._trigger_auto_preview)
+
+        # Page numbers controls
+        self.page_numbers_controls = QWidget()
+        pnl = QHBoxLayout(self.page_numbers_controls)
+        pnl.setContentsMargins(0, 0, 0, 0)
+        
+        lbl_pnp = QLabel("Position:")
+        lbl_pnp.setStyleSheet(f"color: {TEXT_PRIMARY};")
+        self.pn_pos_combo = QComboBox()
+        self.pn_pos_combo.addItems(["Bottom-Center", "Bottom-Right", "Top-Center", "Top-Right"])
+        self.pn_pos_combo.setStyleSheet(f"background-color: transparent; color: {TEXT_PRIMARY}; border: 1px solid {BORDER};")
+        
+        lbl_pns = QLabel("Start at:")
+        lbl_pns.setStyleSheet(f"color: {TEXT_PRIMARY};")
+        self.pn_start_spin = QSpinBox()
+        self.pn_start_spin.setRange(-9999, 9999)
+        self.pn_start_spin.setValue(1)
+        self.pn_start_spin.setStyleSheet(f"background-color: transparent; color: {TEXT_PRIMARY}; border: 1px solid {BORDER};")
+        
+        pnl.addWidget(lbl_pnp)
+        pnl.addWidget(self.pn_pos_combo)
+        pnl.addSpacing(20)
+        pnl.addWidget(lbl_pns)
+        pnl.addWidget(self.pn_start_spin)
+        pnl.addStretch()
+        
+        self.controls_layout.addWidget(self.page_numbers_controls)
+        self.page_numbers_controls.setVisible(False)
         
         self.layout.addWidget(self.controls_container)
         self.controls_container.setVisible(False)
@@ -465,7 +704,7 @@ class UnifiedWorkspacePage(QWidget):
                 background-color: #3A7CE0;
             }}
         """)
-        self.start_over_btn.clicked.connect(self.back_requested.emit)
+        self.start_over_btn.clicked.connect(self._on_start_over)
         
         btn_layout_res.addWidget(self.start_over_btn)
         
@@ -509,6 +748,28 @@ class UnifiedWorkspacePage(QWidget):
         
         self.stack.setCurrentWidget(self.workspace_view)
         
+    def _on_start_over(self):
+        wrong_file_names = []
+        if hasattr(self, 'last_results'):
+            for fname, success, err_msg in self.last_results:
+                if not success and ("tool needs a" in err_msg or "valid PDF" in err_msg or "Invalid input" in err_msg or "Invalid file extension" in err_msg):
+                    wrong_file_names.append(fname)
+                    
+        if wrong_file_names:
+            for fname in wrong_file_names:
+                for fpath in list(self.selected_files):
+                    import os
+                    if os.path.basename(fpath) == fname:
+                        self._remove_file(fpath)
+            
+            if self.selected_files:
+                self.stack.setCurrentWidget(self.workspace_view)
+                self.last_results = []
+                return
+                
+        self.last_results = []
+        self.back_requested.emit()
+
     def _on_files_added(self, files):
         self.selected_files.extend(files)
         
@@ -542,6 +803,30 @@ class UnifiedWorkspacePage(QWidget):
         if not self.selected_files:
             self._reset_to_state1()
             
+    def _on_watermark_mode_changed(self):
+        is_text = self.wm_mode_text.isChecked()
+        self.wm_text_widget.setVisible(is_text)
+        self.wm_image_widget.setVisible(not is_text)
+        self._validate_watermark()
+        self.wm_preview_timer.start()
+        
+    def _select_watermark_image(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select Watermark Image", "", "Images (*.png *.jpg *.jpeg)")
+        if file:
+            self.wm_img_path = file
+            import os
+            self.wm_img_lbl.setText(os.path.basename(file))
+        self._validate_watermark()
+        self.wm_preview_timer.start()
+
+    def _validate_watermark(self):
+        if self.current_tool_id == "watermark":
+            self._on_tool_selected(self.current_tool_id)
+
+    def _validate_password(self):
+        if self.current_tool_id in ["protect", "unlock"]:
+            self._on_tool_selected(self.current_tool_id)
+
     def _on_tool_selected(self, tool_id: str):
         self.current_tool_id = tool_id
         # Update action button text
@@ -560,8 +845,14 @@ class UnifiedWorkspacePage(QWidget):
         # Show/Hide specific controls
         self.split_controls.setVisible(tool_id == "split")
         self.rotate_controls.setVisible(tool_id == "rotate")
+        self.compress_controls.setVisible(tool_id == "compress")
+        self.password_controls.setVisible(tool_id in ["protect", "unlock"])
+        self.watermark_controls.setVisible(tool_id == "watermark")
+        if tool_id != "watermark":
+            self._show_wm_placeholder()
+        self.page_numbers_controls.setVisible(tool_id == "page_numbers")
         
-        has_controls = tool_id in ["split", "rotate"]
+        has_controls = tool_id in ["split", "rotate", "compress", "protect", "unlock", "watermark", "page_numbers"]
         self.controls_container.setVisible(has_controls)
         
         # Auto-expand grids for tools that need page-level selection
@@ -577,6 +868,17 @@ class UnifiedWorkspacePage(QWidget):
         if len(self.selected_files) > 0:
             if tool_id == "merge" and len(self.selected_files) < 2:
                 self.action_btn.setVisible(False)
+            elif tool_id in ["compress", "protect", "unlock", "watermark", "page_numbers"] and len(self.selected_files) > 1:
+                self.action_btn.setVisible(False)
+            elif tool_id in ["protect", "unlock"] and not self.password_input.text():
+                self.action_btn.setVisible(False)
+            elif tool_id == "watermark":
+                if self.wm_mode_text.isChecked() and not self.watermark_input.text():
+                    self.action_btn.setVisible(False)
+                elif not self.wm_mode_text.isChecked() and not getattr(self, "wm_img_path", ""):
+                    self.action_btn.setVisible(False)
+                else:
+                    self.action_btn.setVisible(True)
             else:
                 self.action_btn.setVisible(True)
         else:
@@ -592,6 +894,95 @@ class UnifiedWorkspacePage(QWidget):
         if hasattr(self, '_current_output_path'):
             QApplication.clipboard().setText(self._current_output_path)
 
+    def _show_wm_placeholder(self):
+        while self.wm_preview_layout.count():
+            child = self.wm_preview_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        self.wm_preview_layout.setAlignment(Qt.AlignCenter)
+        self.wm_preview_placeholder = QLabel("Rendered page will appear here")
+        self.wm_preview_placeholder.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px;")
+        self.wm_preview_placeholder.setAlignment(Qt.AlignCenter)
+        self.wm_preview_layout.addWidget(self.wm_preview_placeholder)
+
+    def _on_wm_text_changed(self):
+        self._validate_watermark()
+        self.wm_preview_timer.start()
+        
+    def _trigger_auto_preview(self):
+        if self.current_tool_id != "watermark":
+            return
+        if self.wm_mode_text.isChecked() and not self.watermark_input.text():
+            self._show_wm_placeholder()
+            return
+        elif not self.wm_mode_text.isChecked() and not getattr(self, "wm_img_path", ""):
+            self._show_wm_placeholder()
+            return
+        if not self.selected_files:
+            self._show_wm_placeholder()
+            return
+        self._on_preview_action()
+
+    def _on_preview_action(self):
+        fpaths = self.selected_files
+        if not fpaths:
+            return
+        
+        fpath = fpaths[0]
+        
+        import tempfile, os
+        from gui.utils.error_messages import friendly_message
+        
+        fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(fd)
+        os.remove(temp_path)
+        
+        # Show lightweight rendering indicator inline
+        while self.wm_preview_layout.count():
+            child = self.wm_preview_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        self.wm_preview_layout.setAlignment(Qt.AlignCenter)
+        lbl_rendering = QLabel("Rendering...")
+        from gui.styles.theme import TEXT_SECONDARY
+        lbl_rendering.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px; font-weight: bold;")
+        lbl_rendering.setAlignment(Qt.AlignCenter)
+        self.wm_preview_layout.addWidget(lbl_rendering)
+        QApplication.processEvents()
+        
+        try:
+            if self.wm_mode_text.isChecked():
+                from core.security import add_watermark
+                args = [self.watermark_input.text(), self.watermark_op_slider.value() / 100.0, self.watermark_pos_combo.currentText().lower()]
+                temp_path = str(add_watermark(fpath, temp_path, *args))
+            else:
+                from core.security import add_image_watermark
+                args = [self.wm_img_path, self.watermark_op_slider.value() / 100.0, self.watermark_pos_combo.currentText().lower(), self.wm_scale_slider.value() / 100.0]
+                temp_path = str(add_image_watermark(fpath, temp_path, *args))
+                
+            from gui.utils.thumbnails import render_page_thumbnail
+            
+            # Clear previous preview pages
+            while self.wm_preview_layout.count():
+                child = self.wm_preview_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+                    
+            # Render only page 1 for preview
+            pix = render_page_thumbnail(temp_path, 1, max_size=900)
+            lbl = QLabel()
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setPixmap(pix)
+            self.wm_preview_layout.addWidget(lbl)
+                
+
+        except Exception as e:
+            QMessageBox.warning(self, "Preview Error", friendly_message(e))
+        finally:
+            progress.close()
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
     def _on_action(self):
         tid = self.current_tool_id
         if not tid or not self.selected_files: return
@@ -603,7 +994,7 @@ class UnifiedWorkspacePage(QWidget):
             "pptx_to_pdf": (pptx_to_pdf, "dir"), "split": (split_pdf, "dir"),
             "images_to_pdf": (images_to_pdf, "file"), "merge": (merge_pdfs, "file"),
             "extract": (extract_pages, "file_per_input"), "delete": (delete_pages, "file_per_input"),
-            "reorder": (reorder_pages, "file_per_input"), "rotate": (rotate_pages, "file_per_input")
+            "reorder": (reorder_pages, "file_per_input"), "rotate": (rotate_pages, "file_per_input"), "compress": (compress_pdf, "file_per_input"), "protect": (protect_pdf, "file_per_input"), "unlock": (unlock_pdf, "file_per_input"), "watermark": (add_watermark, "file_per_input"), "page_numbers": (add_page_numbers, "file_per_input")
         }
         
         if tid not in tool_map:
@@ -611,6 +1002,10 @@ class UnifiedWorkspacePage(QWidget):
             return
             
         core_func, out_mode = tool_map[tid]
+        
+        if tid == "watermark" and not self.wm_mode_text.isChecked():
+            from core.security import add_image_watermark
+            core_func = add_image_watermark
         
         if out_mode == "dir":
             out_path = QFileDialog.getExistingDirectory(self, "Select Output Directory")
@@ -685,16 +1080,34 @@ class UnifiedWorkspacePage(QWidget):
                             selected = widget.grid.get_selected_pages() or None
                             args = [int(self.angle_combo.currentText()), selected]
                             
+                    elif tid == "compress":
+                        args = [self.quality_combo.currentText().lower()]
+                    elif tid in ["protect", "unlock"]:
+                        args = [self.password_input.text()]
+                    elif tid == "watermark":
+                        if self.wm_mode_text.isChecked():
+                            args = [self.watermark_input.text(), self.watermark_op_slider.value() / 100.0, self.watermark_pos_combo.currentText().lower()]
+                        else:
+                            args = [self.wm_img_path, self.watermark_op_slider.value() / 100.0, self.watermark_pos_combo.currentText().lower(), self.wm_scale_slider.value() / 100.0]
+                    elif tid == "page_numbers":
+                        args = [self.pn_pos_combo.currentText().lower(), self.pn_start_spin.value()]
+                            
                     if args:
                         core_func(fpath, file_out_path, *args)
                     else:
                         core_func(fpath, file_out_path)
                         
                     results.append((fname, True, ""))
+                except IncorrectPasswordError as e:
+                    progress.close()
+                    QMessageBox.warning(self, "Incorrect Password", friendly_message(e))
+                    return
                 except Exception as e:
                     results.append((fname, False, friendly_message(e)))
                     
         progress.close()
+        
+        self.last_results = results
         
         successes = sum(1 for r in results if r[1])
         failures = len(results) - successes
