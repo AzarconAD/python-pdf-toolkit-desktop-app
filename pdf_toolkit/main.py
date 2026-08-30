@@ -20,6 +20,11 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("PDF Toolbox")
     
+    from PySide6.QtGui import QIcon
+    import os
+    icon_path = os.path.join(os.path.dirname(__file__), "assets", "app_icon.png")
+    app.setWindowIcon(QIcon(icon_path))
+    
     from PySide6.QtGui import QFont
     app.setFont(QFont("Segoe UI", 10))
     
