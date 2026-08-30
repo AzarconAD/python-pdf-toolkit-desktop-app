@@ -1,5 +1,5 @@
 pdf2docx
-PyMuPDF
+PyMuPDF>=1.26.1
 Pillow
 pytest
 pikepdf
