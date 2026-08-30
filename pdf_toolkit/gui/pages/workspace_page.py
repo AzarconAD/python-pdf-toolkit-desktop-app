@@ -184,6 +184,7 @@ class UnifiedWorkspacePage(QWidget):
     State 2: Compact DropZone + File Previews.
     """
     tool_selected = Signal(str)
+    back_requested = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -203,24 +204,25 @@ class UnifiedWorkspacePage(QWidget):
         header_layout.setContentsMargins(16, 12, 16, 12)
         header_layout.setSpacing(0)
 
-        # Left-side panel toggle button
-        self.panel_toggle_btn = QPushButton()
-        self.panel_toggle_btn.setFixedSize(28, 28)
-        self.panel_toggle_btn.setCursor(Qt.PointingHandCursor)
-        self.panel_toggle_btn.setIcon(get_icon("menu", TEXT_SECONDARY, 18))
-        self.panel_toggle_btn.setStyleSheet("""
-            QPushButton {
+        # Back button
+        self.back_btn = QPushButton(" Back")
+        self.back_btn.setIcon(get_icon("arrow-left", TEXT_SECONDARY, 16))
+        self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.back_btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
                 border: none;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: """ + SURFACE_ELEVATED + """;
-            }
+                color: {TEXT_SECONDARY};
+                font-size: 14px;
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                color: {TEXT_PRIMARY};
+            }}
         """)
-        self.panel_toggle_btn.clicked.connect(self._toggle_tools_panel)
-        header_layout.addWidget(self.panel_toggle_btn)
-        header_layout.addSpacing(10)
+        self.back_btn.clicked.connect(self.back_requested.emit)
+        header_layout.addWidget(self.back_btn)
+        header_layout.addSpacing(16)
 
         app_icon = QLabel()
         app_icon.setFixedSize(22, 22)
@@ -248,33 +250,17 @@ class UnifiedWorkspacePage(QWidget):
         self.layout.setSpacing(20)
         self.stack.addWidget(self.workspace_view)
         
-        self.top_stretch = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.bottom_stretch = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        
-        self.state1_title = QLabel("Convert, organize, and secure your PDFs")
-        self.state1_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 18px; font-weight: 500; border: none; background: transparent;")
-        self.state1_title.setAlignment(Qt.AlignCenter)
-        
-        self.state1_subtitle = QLabel("Everything runs locally on your machine.")
-        self.state1_subtitle.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 13px; border: none; background: transparent;")
-        self.state1_subtitle.setAlignment(Qt.AlignCenter)
-        
-        self.state1_footer = QLabel("Supports PDF, Word, Excel, PowerPoint, and images")
-        self.state1_footer.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 12px; border: none; background: transparent;")
-        self.state1_footer.setAlignment(Qt.AlignCenter)
+        self.top_stretch = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.bottom_stretch = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         
         self.layout.addItem(self.top_stretch)
-        self.layout.addWidget(self.state1_title)
-        self.layout.addWidget(self.state1_subtitle)
-        self.layout.addSpacing(10)
         
         self.drop_zone = DropZone()
         self.drop_zone.files_dropped.connect(self._on_files_added)
         self.drop_zone.browse_clicked.connect(self._on_browse)
-        self.layout.addWidget(self.drop_zone, alignment=Qt.AlignHCenter)
+        self.layout.addWidget(self.drop_zone, alignment=Qt.AlignmentFlag.AlignHCenter)
         
         self.layout.addSpacing(10)
-        self.layout.addWidget(self.state1_footer)
         self.layout.addItem(self.bottom_stretch)
         
         # Scroll area for previews
@@ -467,35 +453,21 @@ class UnifiedWorkspacePage(QWidget):
         
         self.start_over_btn = QPushButton("Start over")
         self.start_over_btn.setFixedHeight(40)
-        self.start_over_btn.setCursor(Qt.PointingHandCursor)
+        self.start_over_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_over_btn.setObjectName("StartOverBtn")
         self.start_over_btn.setStyleSheet(f"""
             #StartOverBtn {{
-                background-color: transparent; color: {TEXT_PRIMARY};
-                font-size: 14px; font-weight: 500; border-radius: 6px; border: 1px solid {BORDER};
-            }}
-            #StartOverBtn:hover {{ background-color: {SURFACE_ELEVATED}; }}
-        """)
-        self.start_over_btn.clicked.connect(self._reset_to_state1)
-        
-        self.run_another_btn = QPushButton("Run another tool on this file")
-        self.run_another_btn.setFixedHeight(40)
-        self.run_another_btn.setCursor(Qt.PointingHandCursor)
-        self.run_another_btn.setObjectName("RunAnotherBtn")
-        self.run_another_btn.setStyleSheet(f"""
-            #RunAnotherBtn {{
                 background-color: {ACCENT}; color: {TEXT_ON_ACCENT};
                 font-size: 14px; font-weight: 500; border-radius: 6px; border: none; padding: 0 15px;
             }}
-            #RunAnotherBtn:hover {{
+            #StartOverBtn:hover {{
                 opacity: 0.9;
                 background-color: #3A7CE0;
             }}
         """)
-        self.run_another_btn.clicked.connect(self._return_to_state2)
+        self.start_over_btn.clicked.connect(self.back_requested.emit)
         
-        btn_layout_res.addWidget(self.start_over_btn, 1)
-        btn_layout_res.addWidget(self.run_another_btn, 1)
+        btn_layout_res.addWidget(self.start_over_btn)
         
         self.result_layout.addLayout(self.result_header_layout)
         self.result_layout.addLayout(self.result_badges_layout)
@@ -512,39 +484,6 @@ class UnifiedWorkspacePage(QWidget):
         result_outer_layout.addStretch()
         
         self.stack.addWidget(self.result_view)
-
-    def _toggle_tools_panel(self):
-        # If panel already open, close it
-        if hasattr(self, '_tools_panel') and self._tools_panel is not None:
-            try:
-                if self._tools_panel.isVisible():
-                    self._tools_panel.close()
-                    self._set_panel_btn_active(False)
-                    return
-            except RuntimeError:
-                pass  # C++ object already deleted
-
-        from gui.widgets.tools_panel import ToolsPanel
-        self._tools_panel = ToolsPanel(self)
-        # Delete on close so isVisible() check is reliable after Popup auto-close
-        self._tools_panel.setAttribute(Qt.WA_DeleteOnClose)
-        self._tools_panel.destroyed.connect(
-            lambda: self._set_panel_btn_active(False)
-        )
-        # Wire tool selection through to the existing State 3 pipeline
-        self._tools_panel.tool_selected.connect(self.tool_selected.emit)
-        self._tools_panel.tool_selected.connect(self._on_tool_selected)
-
-        self._tools_panel.adjustSize()
-        # Anchor below the toggle button, left-aligned to it
-        pos = self.panel_toggle_btn.mapToGlobal(self.panel_toggle_btn.rect().bottomLeft())
-        self._tools_panel.move(pos)
-        self._tools_panel.show()
-        self._set_panel_btn_active(True)
-
-    def _set_panel_btn_active(self, active: bool):
-        color = ACCENT if active else TEXT_SECONDARY
-        self.panel_toggle_btn.setIcon(get_icon("menu", color, 18))
 
     def _on_browse(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select Files", "", "All Files (*)")
@@ -564,26 +503,16 @@ class UnifiedWorkspacePage(QWidget):
         self.action_btn.setVisible(False)
         self.current_tool_id = None
         self.layout.setAlignment(self.drop_zone, Qt.AlignHCenter)
-        
-        self.state1_title.setVisible(True)
-        self.state1_subtitle.setVisible(True)
-        self.state1_footer.setVisible(True)
         self.top_stretch.changeSize(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.bottom_stretch.changeSize(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.invalidate()
         
         self.stack.setCurrentWidget(self.workspace_view)
         
-    def _return_to_state2(self):
-        self.stack.setCurrentWidget(self.workspace_view)
-
     def _on_files_added(self, files):
         self.selected_files.extend(files)
         
         # Transition to State 2
-        self.state1_title.setVisible(False)
-        self.state1_subtitle.setVisible(False)
-        self.state1_footer.setVisible(False)
         self.top_stretch.changeSize(0, 0, QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.bottom_stretch.changeSize(0, 0, QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.layout.invalidate()
