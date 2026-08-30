@@ -1,6 +1,6 @@
-﻿from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QSizePolicy
 from PySide6.QtCore import Qt, Signal
-from gui.styles.theme import SURFACE_ELEVATED, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT, BG_PAGE
+from gui.styles.theme import SURFACE_ELEVATED, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT, BG_PAGE, BORDER, SURFACE
 from gui.utils.icons import get_icon
 _TOOLS = {
     "Convert": {
@@ -29,9 +29,9 @@ _TOOLS = {
         ],
     },
     "Optimize": {
-        "enabled": False,
+        "enabled": True,
         "items": [
-            ("optimize",     "Compress PDF",   None,             False),
+            ("optimize",     "Compress PDF",   "compress",       False),
         ],
     },
     "Edit": {
@@ -41,12 +41,12 @@ _TOOLS = {
         ],
     },
     "Security": {
-        "enabled": False,
+        "enabled": True,
         "items": [
-            ("security",     "Protect PDF",      None,           False),
-            ("security",     "Unlock PDF",       None,           False),
-            ("security",     "Watermark",        None,           False),
-            ("security",     "Add Page Numbers", None,           False),
+            ("security",     "Protect PDF",      "protect",      False),
+            ("security",     "Unlock PDF",       "unlock",       False),
+            ("security",     "Watermark",        "watermark",    False),
+            ("security",     "Add Page Numbers", "page_numbers", False),
         ],
     },
 }
@@ -113,15 +113,36 @@ class HomePage(QWidget):
         self._tabs = {}
         
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 60, 40, 40)
-        main_layout.setSpacing(40)
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        # Header/Title
+        # --- Main Content Container ---
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(40, 40, 40, 40)
+        content_layout.setSpacing(30)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        main_layout.addWidget(content_widget)
+        
+        # Titles Container
+        titles_layout = QVBoxLayout()
+        titles_layout.setSpacing(8)
+        titles_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Hero Title
+        hero_title = QLabel("PDF Toolbox")
+        hero_title.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 36px; font-weight: bold; border: none; background: transparent;")
+        hero_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        titles_layout.addWidget(hero_title)
+        
+        # Subtitle
         title_lbl = QLabel("What would you like to do?")
-        title_lbl.setStyleSheet(f"color: {TEXT_PRIMARY}; font-size: 28px; font-weight: 600; border: none; background: transparent;")
+        title_lbl.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 18px; font-weight: 500; border: none; background: transparent;")
         title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_lbl)
+        titles_layout.addWidget(title_lbl)
+        
+        content_layout.addStretch()
+        content_layout.addLayout(titles_layout)
         
         # Navbar
         navbar = QHBoxLayout()
@@ -135,17 +156,17 @@ class HomePage(QWidget):
             self._tabs[cat] = tab
             navbar.addWidget(tab)
             
-        main_layout.addLayout(navbar)
+        content_layout.addLayout(navbar)
         
         # Tool Grid
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(20)
-        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-        main_layout.addLayout(self.grid_layout)
+        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        content_layout.addLayout(self.grid_layout)
         
         self._populate_grid(self._active_cat)
         
-        main_layout.addStretch()
+        content_layout.addStretch()
 
     def _switch_category(self, cat: str):
         if cat == self._active_cat:

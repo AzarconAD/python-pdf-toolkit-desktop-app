@@ -2,7 +2,8 @@ import re
 from core.utils import (
     ConversionError, 
     InvalidFileError, 
-    LibreOfficeNotFoundError
+    LibreOfficeNotFoundError,
+    IncorrectPasswordError
 )
 
 def friendly_message(exc: Exception) -> str:
@@ -10,6 +11,9 @@ def friendly_message(exc: Exception) -> str:
     Translates a raw backend exception into a clean, user-facing string.
     """
     
+    if isinstance(exc, IncorrectPasswordError):
+        return "The password you entered is incorrect. Please try again."
+        
     if isinstance(exc, LibreOfficeNotFoundError):
         return "LibreOffice is required for this conversion but could not be found."
         

@@ -17,6 +17,10 @@ class LibreOfficeNotFoundError(PDFToolkitError):
     """Raised when LibreOffice cannot be found."""
     pass
 
+class IncorrectPasswordError(PDFToolkitError):
+    """Raised when an incorrect password is provided for an encrypted PDF."""
+    pass
+
 def validate_file_exists(path: str) -> Path:
     """
     Check if the given path exists on disk.
