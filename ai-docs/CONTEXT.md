@@ -1,9 +1,9 @@
 # CONTEXT
 
-PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Windows-only. See ../AGENTS.md for stack/roles/contract, project-plan.md (same dir) for phases/status.
+PDF ToolBox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Windows-only. See ../AGENTS.md for stack/roles/contract, project-plan.md (same dir) for phases/status.
 
 ## Locked decisions
-- App name: PDF Toolbox
+- App name: PDF ToolBox
 - Layout: single window, sidebar dashboard, all tools visible.
 - Theme: dark mode only (MVP), professional/utility feel, one accent color (no multi-color UI).
 - Color palette (hex):
@@ -34,7 +34,7 @@ PDF Toolbox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase 1–4 complete. Phase 5 (polish + packaging) next.
+Phase 1-4 done. Edit feature (originally scoped as part of Phase 5 exploration) complete and live-verified. Remaining for Phase 5: packaging (PyInstaller, bundled LibreOffice), app icon, global exception hook (flagged during password-hang bug earlier), general polish pass, CLEANUP.md pass (dev_test_edit_canvas.py should be deleted once confirmed no longer needed).
 
 Known issues flagged for Phase 5:
 - No global exception hook — unhandled slot exceptions can hang UI silently (demonstrated by password NameError bug).

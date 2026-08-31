@@ -1,7 +1,8 @@
 # AGENTS.md
 
 ## Roles
-- planner: Claude (this session) — architecture, task specs, bug diagnosis, review. No code.
+- writer: developer (me), you (ai)
+- planner: Claude — architecture, task specs, bug diagnosis, review. No code.
 - core_agent: Claude Sonnet 4.6 — writes `core/` (processing logic), `tests/`.
 - gui_agent: Gemini 3.1 Pro — writes `gui/` (PySide6 UI), `main.py` wiring.
 

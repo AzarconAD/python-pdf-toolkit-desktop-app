@@ -35,9 +35,9 @@ _TOOLS = {
         ],
     },
     "Edit": {
-        "enabled": False,
+        "enabled": True,
         "items": [
-            ("edit",         "Coming soon",    None,             False),
+            ("edit",         "Edit PDF",       "edit_pdf",       False),
         ],
     },
     "Security": {

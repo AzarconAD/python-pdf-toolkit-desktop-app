@@ -9,6 +9,8 @@ _pymupdf._g_out_message = None
 import fitz  # triggers the warning call, which now writes to None and is silently dropped
 _pymupdf._g_out_message = _saved_msg
 del _pymupdf, _saved_msg
+import logging
+logging.getLogger("pikepdf").setLevel(logging.WARNING)
 
 from PySide6.QtWidgets import QApplication
 from gui.main_window import MainWindow
@@ -32,7 +34,7 @@ def main():
     app.setApplicationDisplayName("PDF ToolBox")
     
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     
     sys.exit(app.exec())
 
