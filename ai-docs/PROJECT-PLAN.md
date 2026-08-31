@@ -1,5 +1,8 @@
 # PROJECT PLAN
 
+> **PROJECT STATUS: NOT FINISHED.** Phase 1-4 + Edit feature complete and verified. Phase 5 (packaging/polish) NOT STARTED — additional features/fixes planned first. Do not begin Phase 5 without explicit user go-ahead.
+
+
 ## Phases
 1. Core skeleton + Convert module (core_agent) — STATUS: done (47 tests, 41 passed/6 skipped/0 failed after correction pass; convert_to.py=PDF→other, convert_from.py=other→PDF per spec)
 2. GUI shell: sidebar dashboard + Convert views (gui_agent) — STATUS: done (module swap + import corrections verified, routing manually confirmed)

@@ -34,7 +34,7 @@ PDF ToolBox — PDF toolkit desktop app (iLovePDF clone). Python + PySide6, Wind
 - Security: protect_pdf, unlock_pdf
 
 ## Current status
-Phase 1-4 done. Edit feature (originally scoped as part of Phase 5 exploration) complete and live-verified. Remaining for Phase 5: packaging (PyInstaller, bundled LibreOffice), app icon, global exception hook (flagged during password-hang bug earlier), general polish pass, CLEANUP.md pass (dev_test_edit_canvas.py should be deleted once confirmed no longer needed).
+Phase 1-4 + Edit feature complete and verified. Project is ongoing — more features/fixes planned before Phase 5. Phase 5 (PyInstaller packaging, bundled LibreOffice, app icon, global exception hook) explicitly deferred, not started.
 
 Known issues flagged for Phase 5:
 - No global exception hook — unhandled slot exceptions can hang UI silently (demonstrated by password NameError bug).
