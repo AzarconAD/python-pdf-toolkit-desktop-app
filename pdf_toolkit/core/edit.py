@@ -27,6 +27,12 @@ Element-specific fields:
    - "italic" (bool, optional): Whether text is italic (default: False).
    - "align" (str, optional): Text alignment, one of "left", "center", "right", "justify" (default: "left").
    - "font_family" (str, optional): Font family, one of "helv", "times", "cour" (default: "helv").
+   - "underline" (bool, optional): Draw a line under the text (default: False).
+   - "strikethrough" (bool, optional): Draw a line through the center of the text bounding box (default: False).
+   - "highlight_color" (str | None, optional): Fill color behind the text as a hex string, or None (default: None).
+   - "line_spacing" (float, optional): Multiplier for spacing between lines (default: 1.0).
+   - "rotation" (float, optional): Rotation angle in degrees around the center of the bounding box (default: 0.0).
+   - "opacity" (float, optional): Opacity for text, underline, strikethrough, and highlight from 0.0 to 1.0 (default: 1.0).
 
 2. type="shape":
    - "shape" (str): One of "rectangle", "circle", "line", "arrow".
@@ -130,6 +136,16 @@ def _apply_text(page: pymupdf.Page, element: dict, index: int) -> None:
     align_str = element.get("align", "left")
     font_family = element.get("font_family", "helv")
     
+    underline = element.get("underline", False)
+    strikethrough = element.get("strikethrough", False)
+    highlight_color_hex = element.get("highlight_color", None)
+    line_spacing = element.get("line_spacing", 1.0)
+    rotation = element.get("rotation", 0.0)
+    opacity = element.get("opacity", 1.0)
+    
+    if not (0.0 <= opacity <= 1.0):
+        raise ValueError(f"Text element {index} has invalid opacity: {opacity}. Must be between 0.0 and 1.0.")
+    
     # Map align
     align_map = {
         "left": pymupdf.TEXT_ALIGN_LEFT,
@@ -156,7 +172,36 @@ def _apply_text(page: pymupdf.Page, element: dict, index: int) -> None:
     rect = pymupdf.Rect(x, y, x + w, y + h)
     color_rgb = _hex_to_rgb(color_hex)
     
-    page.insert_textbox(rect, content, fontsize=font_size, fontname=font_name, align=align_val, color=color_rgb)
+    shape = page.new_shape()
+    center = pymupdf.Point(x + w / 2, y + h / 2)
+    morph = (center, pymupdf.Matrix(rotation)) if rotation != 0.0 else None
+    
+    if highlight_color_hex is not None:
+        highlight_rgb = _hex_to_rgb(highlight_color_hex)
+        shape.draw_rect(rect)
+        shape.finish(fill=highlight_rgb, fill_opacity=opacity, color=None, morph=morph)
+        
+    if underline:
+        shape.draw_line(pymupdf.Point(x, y + h * 0.95), pymupdf.Point(x + w, y + h * 0.95))
+        shape.finish(color=color_rgb, stroke_opacity=opacity, width=max(1, font_size * 0.05), morph=morph)
+        
+    if strikethrough:
+        shape.draw_line(pymupdf.Point(x, y + h * 0.55), pymupdf.Point(x + w, y + h * 0.55))
+        shape.finish(color=color_rgb, stroke_opacity=opacity, width=max(1, font_size * 0.05), morph=morph)
+        
+    shape.insert_textbox(
+        rect, 
+        content, 
+        fontsize=font_size, 
+        fontname=font_name, 
+        align=align_val, 
+        color=color_rgb, 
+        fill_opacity=opacity,
+        lineheight=line_spacing,
+        morph=morph
+    )
+    
+    shape.commit()
 
 def _apply_shape(page: pymupdf.Page, element: dict, index: int) -> None:
     required_keys = ["shape", "x1", "y1", "x2", "y2", "color", "stroke_width"]
@@ -171,6 +216,20 @@ def _apply_shape(page: pymupdf.Page, element: dict, index: int) -> None:
     stroke_width = element["stroke_width"]
     fill_hex = element.get("fill")
     
+    stroke_style = element.get("stroke_style", "solid")
+    if stroke_style not in ("solid", "dashed", "dotted"):
+        raise ValueError(f"Shape element {index} has invalid stroke_style: '{stroke_style}'")
+        
+    corner_radius = float(element.get("corner_radius", 0.0))
+    if corner_radius < 0:
+        raise ValueError(f"Shape element {index} has negative corner_radius.")
+        
+    fill_opacity = float(element.get("fill_opacity", 1.0))
+    if not (0.0 <= fill_opacity <= 1.0):
+        raise ValueError(f"Shape element {index} fill_opacity out of range 0.0-1.0")
+        
+    rotation = float(element.get("rotation", 0.0))
+    
     color_rgb = _hex_to_rgb(color_hex)
     fill_rgb = _hex_to_rgb(fill_hex) if fill_hex is not None else None
     
@@ -180,7 +239,47 @@ def _apply_shape(page: pymupdf.Page, element: dict, index: int) -> None:
     p2 = pymupdf.Point(x2, y2)
     
     if shape_type == "rectangle":
-        shape_obj.draw_rect(rect)
+        width = rect.width
+        height = rect.height
+        if corner_radius > 0 and corner_radius > min(width, height) / 2:
+            raise ValueError(f"Shape element {index} corner_radius cannot be larger than half the shape's smaller dimension.")
+            
+        if corner_radius > 0:
+            rx0, ry0 = rect.x0, rect.y0
+            rx1, ry1 = rect.x1, rect.y1
+            r = corner_radius
+            kappa = 0.552284749831
+            
+            shape_obj.draw_line((rx0 + r, ry0), (rx1 - r, ry0))
+            shape_obj.draw_bezier(
+                (rx1 - r, ry0),
+                (rx1 - r + r * kappa, ry0),
+                (rx1, ry0 + r - r * kappa),
+                (rx1, ry0 + r)
+            )
+            shape_obj.draw_line((rx1, ry0 + r), (rx1, ry1 - r))
+            shape_obj.draw_bezier(
+                (rx1, ry1 - r),
+                (rx1, ry1 - r + r * kappa),
+                (rx1 - r + r * kappa, ry1),
+                (rx1 - r, ry1)
+            )
+            shape_obj.draw_line((rx1 - r, ry1), (rx0 + r, ry1))
+            shape_obj.draw_bezier(
+                (rx0 + r, ry1),
+                (rx0 + r - r * kappa, ry1),
+                (rx0, ry1 - r + r * kappa),
+                (rx0, ry1 - r)
+            )
+            shape_obj.draw_line((rx0, ry1 - r), (rx0, ry0 + r))
+            shape_obj.draw_bezier(
+                (rx0, ry0 + r),
+                (rx0, ry0 + r - r * kappa),
+                (rx0 + r - r * kappa, ry0),
+                (rx0 + r, ry0)
+            )
+        else:
+            shape_obj.draw_rect(rect)
     elif shape_type == "circle":
         # Treating (x1,y1) to (x2,y2) as the bounding box for the circle/oval
         shape_obj.draw_oval(rect)
@@ -220,10 +319,24 @@ def _apply_shape(page: pymupdf.Page, element: dict, index: int) -> None:
     else:
         raise ValueError(f"Unknown shape type '{shape_type}' in element {index}.")
         
+    morph = None
+    if rotation != 0.0:
+        center = rect.tl + (rect.br - rect.tl) / 2
+        morph = (center, pymupdf.Matrix(rotation))
+        
+    dashes = None
+    if stroke_style == "dashed":
+        dashes = f"[{stroke_width*3} {stroke_width*3}] 0"
+    elif stroke_style == "dotted":
+        dashes = f"[{stroke_width} {stroke_width*2}] 0"
+
     shape_obj.finish(
         color=color_rgb, 
         fill=fill_rgb if shape_type != "line" else None, 
-        width=stroke_width
+        width=stroke_width,
+        dashes=dashes,
+        fill_opacity=fill_opacity,
+        morph=morph
     )
     shape_obj.commit()
 

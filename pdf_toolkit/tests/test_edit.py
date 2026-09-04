@@ -256,3 +256,209 @@ def test_redact_text_out_of_range(create_dummy_pdf, tmp_path):
     pdf = create_dummy_pdf("doc.pdf", 1)
     with pytest.raises(ValueError, match="out of range"):
         redact_text(pdf, str(tmp_path / "out.pdf"), 1, [[10, 10, 50, 50]])
+def test_apply_edits_text_line_spacing(create_dummy_pdf, tmp_path):
+    import pymupdf
+    # We create two elements with different line_spacing and check the delta Y of the second line.
+    pdf1 = create_dummy_pdf("doc1.pdf", 1)
+    pdf2 = create_dummy_pdf("doc2.pdf", 1)
+    out1 = str(tmp_path / "out1.pdf")
+    out2 = str(tmp_path / "out2.pdf")
+    
+    base_element = {
+        "type": "text", "page": 0, "x": 100, "y": 100, "width": 200, "height": 100,
+        "content": "Line1\nLine2", "font_size": 20, "color": "#000000"
+    }
+    
+    el1 = dict(base_element, line_spacing=1.0)
+    el2 = dict(base_element, line_spacing=2.0)
+    
+    apply_edits(pdf1, out1, [el1])
+    apply_edits(pdf2, out2, [el2])
+    
+    def get_lines(pdf_path):
+        doc = pymupdf.open(pdf_path)
+        page = doc[0]
+        lines = []
+        for block in page.get_text("dict").get("blocks", []):
+            if block.get("type") == 0:
+                for line in block.get("lines", []):
+                    lines.append(line)
+        return lines
+        
+    lines1 = get_lines(out1)
+    lines2 = get_lines(out2)
+    
+    assert len(lines1) >= 2
+    assert len(lines2) >= 2
+    
+    delta_y1 = lines1[1]["bbox"][1] - lines1[0]["bbox"][1]
+    delta_y2 = lines2[1]["bbox"][1] - lines2[0]["bbox"][1]
+    
+    assert delta_y2 > delta_y1, "Line spacing 2.0 should result in larger Y-delta than 1.0"
+
+def test_apply_edits_text_underline(create_dummy_pdf, tmp_path):
+    import pymupdf
+    pdf = create_dummy_pdf("doc.pdf", 1)
+    out = str(tmp_path / "out.pdf")
+    
+    h = 100
+    y = 100
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": y, "width": 200, "height": h,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "underline": True
+    }]
+    
+    apply_edits(pdf, out, elements)
+    doc = pymupdf.open(out)
+    drawings = doc[0].get_drawings()
+    assert len(drawings) == 1
+    
+    # A line consists of two points. Check if they are near y + h * 0.95 (100 + 95 = 195)
+    items = drawings[0]["items"]
+    assert items[0][0] == "l"  # line
+    p1 = items[0][1]
+    assert abs(p1.y - 195.0) < 1.0
+
+def test_apply_edits_text_strikethrough(create_dummy_pdf, tmp_path):
+    import pymupdf
+    pdf = create_dummy_pdf("doc.pdf", 1)
+    out = str(tmp_path / "out.pdf")
+    
+    h = 100
+    y = 100
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": y, "width": 200, "height": h,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "strikethrough": True
+    }]
+    
+    apply_edits(pdf, out, elements)
+    doc = pymupdf.open(out)
+    drawings = doc[0].get_drawings()
+    assert len(drawings) == 1
+    
+    # A line consists of two points. Check if they are near y + h * 0.55 (100 + 55 = 155)
+    items = drawings[0]["items"]
+    assert items[0][0] == "l"  # line
+    p1 = items[0][1]
+    assert abs(p1.y - 155.0) < 1.0
+
+def test_apply_edits_text_highlight(create_dummy_pdf, tmp_path):
+    import pymupdf
+    pdf = create_dummy_pdf("doc.pdf", 1)
+    out = str(tmp_path / "out.pdf")
+    
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": 100, "width": 200, "height": 100,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "highlight_color": "#FF0000"
+    }]
+    
+    apply_edits(pdf, out, elements)
+    doc = pymupdf.open(out)
+    drawings = doc[0].get_drawings()
+    assert len(drawings) == 1
+    
+    d = drawings[0]
+    rect = d["rect"]
+    # Check if the drawn rect matches the text bbox (100, 100, 300, 200)
+    assert abs(rect.x0 - 100.0) < 1.0
+    assert abs(rect.y0 - 100.0) < 1.0
+    assert abs(rect.x1 - 300.0) < 1.0
+    assert abs(rect.y1 - 200.0) < 1.0
+    assert d["fill"] == (1.0, 0.0, 0.0)
+
+def test_apply_edits_text_rotation(create_dummy_pdf, tmp_path):
+    import pymupdf
+    pdf = create_dummy_pdf("doc.pdf", 1)
+    out = str(tmp_path / "out.pdf")
+    
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": 100, "width": 200, "height": 100,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "rotation": 45.0
+    }]
+    
+    apply_edits(pdf, out, elements)
+    doc = pymupdf.open(out)
+    
+    text_dict = doc[0].get_text("dict")
+    found_text = False
+    for block in text_dict.get("blocks", []):
+        if block.get("type") == 0:
+            for line in block.get("lines", []):
+                # 45 deg means dir is (0.707, -0.707) approx
+                dir_vec = line.get("dir")
+                assert abs(dir_vec[0] - 0.707) < 0.01
+                found_text = True
+    assert found_text
+
+def test_apply_edits_text_opacity_out_of_range(create_dummy_pdf, tmp_path):
+    pdf = create_dummy_pdf("doc.pdf", 1)
+    out = str(tmp_path / "out.pdf")
+    
+    # opacity < 0.0
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": 100, "width": 200, "height": 100,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "opacity": -0.1
+    }]
+    with pytest.raises(ValueError, match="invalid opacity"):
+        apply_edits(pdf, out, elements)
+        
+    # opacity > 1.0
+    elements = [{
+        "type": "text", "page": 0, "x": 100, "y": 100, "width": 200, "height": 100,
+        "content": "Hello", "font_size": 20, "color": "#000000",
+        "opacity": 1.1
+    }]
+    with pytest.raises(ValueError, match="invalid opacity"):
+        apply_edits(pdf, out, elements)
+
+
+
+@pytest.mark.parametrize('style', ['dashed', 'dotted'])
+def test_apply_edits_shape_stroke_style(create_dummy_pdf, tmp_path, style):
+    pdf = create_dummy_pdf('doc.pdf', 1)
+    out = str(tmp_path / 'out.pdf')
+    elements = [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'stroke_style': style}]
+    res = apply_edits(pdf, out, elements)
+    assert Path(res).exists()
+
+def test_apply_edits_shape_corner_radius(create_dummy_pdf, tmp_path):
+    pdf = create_dummy_pdf('doc.pdf', 1)
+    out = str(tmp_path / 'out.pdf')
+    elements = [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'corner_radius': 10.0}]
+    res = apply_edits(pdf, out, elements)
+    assert Path(res).exists()
+
+def test_apply_edits_shape_fill_opacity(create_dummy_pdf, tmp_path):
+    pdf = create_dummy_pdf('doc.pdf', 1)
+    out = str(tmp_path / 'out.pdf')
+    elements = [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'fill': '#FF0000', 'fill_opacity': 0.5}]
+    res = apply_edits(pdf, out, elements)
+    assert Path(res).exists()
+
+def test_apply_edits_shape_rotation(create_dummy_pdf, tmp_path):
+    pdf = create_dummy_pdf('doc.pdf', 1)
+    out = str(tmp_path / 'out.pdf')
+    elements = [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'rotation': 45.0}]
+    res = apply_edits(pdf, out, elements)
+    assert Path(res).exists()
+
+def test_apply_edits_shape_invalid(create_dummy_pdf, tmp_path):
+    pdf = create_dummy_pdf('doc.pdf', 1)
+    out = str(tmp_path / 'out.pdf')
+    
+    with pytest.raises(ValueError, match='invalid stroke_style'):
+        apply_edits(pdf, out, [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'stroke_style': 'invalid'}])
+        
+    with pytest.raises(ValueError, match='negative corner_radius'):
+        apply_edits(pdf, out, [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'corner_radius': -5.0}])
+        
+    with pytest.raises(ValueError, match='cannot be larger than half'):
+        apply_edits(pdf, out, [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'corner_radius': 25.0}])
+        
+    with pytest.raises(ValueError, match='out of range'):
+        apply_edits(pdf, out, [{'type': 'shape', 'page': 0, 'shape': 'rectangle', 'x1': 10, 'y1': 10, 'x2': 50, 'y2': 50, 'color': '#00FF00', 'stroke_width': 2, 'fill_opacity': 1.5}])
